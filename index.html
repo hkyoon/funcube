@@ -63,7 +63,16 @@ button{font:inherit;color:inherit}
 .meld.over,.newzone.over{border-color:var(--accent);background:rgba(242,184,75,.12)}
 .slot{width:calc(var(--tw)*.8);height:calc(var(--tw)*1.36);border-radius:6px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-size:20px;cursor:pointer;flex:none;margin-left:4px}
 .newzone{display:flex;align-items:center;justify-content:center;min-width:calc(var(--tw)*3.6);height:calc(var(--tw)*1.36 + 15px);padding:0 14px;border-radius:10px;border:1.5px dashed rgba(236,231,220,.28);color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:border-color .15s, background .15s}
-.newzone.hl{border-color:var(--accent);color:var(--accent)}
+.newzone.hl{border-color:var(--accent);color:var(--accent);background:rgba(242,184,75,.08)}
+.newzone:disabled{opacity:.45;cursor:default}
+.meld.fit{border-color:var(--ok);background:rgba(127,211,164,.10);cursor:pointer}
+.dock{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
+.dock .newzone{flex:1;min-width:0;height:auto;min-height:52px;flex-direction:column;gap:2px;padding:6px 12px;text-align:center}
+.dock .newzone b{font-size:14px;font-weight:700}
+.dock .newzone small{font-size:11.5px;opacity:.85}
+.dock .newzone small.ok{color:var(--ok);opacity:1}
+.dock .side{display:flex;flex-direction:column;gap:6px}
+.dock .side .btn{flex:1;padding:6px 12px}
 .empty-hint{width:100%;color:var(--muted);font-size:13px;line-height:1.6;max-width:46ch}
 
 /* tiles */
@@ -301,6 +310,13 @@ button{font:inherit;color:inherit}
       <button class="btn" id="btnSortCol" type="button" title="색깔별 연속 숫자 정렬">123 정렬</button>
       <button class="btn" id="btnReset" type="button">되돌리기</button>
       <button class="btn primary" id="btnEnd" type="button">뽑기</button>
+    </div>
+    <div class="dock">
+      <button class="newzone" type="button" id="dockNew" data-drop="new"><b>＋ 새 조합</b><small id="dockHint">타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르세요</small></button>
+      <div class="side">
+        <button class="btn" type="button" id="btnSuggest" title="내 패로 만들 수 있는 조합을 골라 줍니다">추천</button>
+        <button class="btn" type="button" id="btnClearSel">선택 해제</button>
+      </div>
     </div>
     <div class="rack" id="rack" data-drop="rack"></div>
   </section>
@@ -972,13 +988,13 @@ function render() {
   for (const m of S.table) {
     const a = analyze(m.tiles);
     const order = a.valid ? a.order : m.tiles;
-    html += `<div class="meld ${a.valid ? '' : 'invalid'}" data-drop="meld" data-mid="${m.id}">` +
+    const fit = ht && sel.size && (S.init[mySeat()] || m.tiles.every(id => mine.has(id))) && [...sel].every(id => !m.tiles.includes(id)) && analyze([...m.tiles, ...sel]).valid;
+    html += `<div class="meld ${a.valid ? '' : 'invalid'} ${fit ? 'fit' : ''}" data-drop="meld" data-mid="${m.id}">` +
       order.map(id => tileHTML(id, mine.has(id) ? 'mine' : '', a.jv[id])).join('') +
       (ht && sel.size ? `<button class="slot" type="button" data-drop="meld" data-mid="${m.id}" aria-label="이 조합에 추가">＋</button>` : '') +
       `</div>`;
   }
-  if (!S.table.length) html += `<p class="empty-hint">테이블이 비어 있습니다. 랙의 타일을 아래 칸으로 끌어 조합을 만드세요. 첫 등록은 내 타일만으로 30점 이상이어야 합니다.</p>`;
-  if (ht) html += `<button class="newzone ${sel.size ? 'hl' : ''}" type="button" data-drop="new">＋ 새 조합</button>`;
+  if (!S.table.length) html += `<p class="empty-hint">테이블이 비어 있습니다. 내 패에서 타일을 눌러 고른 뒤 아래 '새 조합'을 누르세요. 막막하면 '추천'을 눌러 보세요. 첫 등록은 내 타일만으로 30점 이상이어야 합니다.</p>`;
   $('table').innerHTML = html;
 
   if (me < 0) {
@@ -987,6 +1003,7 @@ function render() {
     $('rack').innerHTML = sortedHand().map(id => tileHTML(id, id === drawnId ? 'drawn' : '')).join('');
   }
   $('rack').classList.toggle('wait', !ht);
+  renderDock(ht);
 
   const played = ht ? playedIds() : [];
   const invalid = S.table.filter(m => !analyze(m.tiles).valid).length;
@@ -1021,6 +1038,56 @@ function render() {
     else { again.hidden = false; again.textContent = '다시 하기'; }
     ov.hidden = false;
   } else ov.hidden = true;
+}
+
+// ---------- dock: selection status + suggestions ----------
+const TYPE_KO = { run: '런', group: '그룹' };
+function renderDock(ht) {
+  const nz = $('dockNew'), hint = $('dockHint');
+  nz.disabled = !ht;
+  nz.classList.toggle('hl', ht && sel.size > 0);
+  $('btnSuggest').disabled = !ht;
+  $('btnClearSel').disabled = !ht || !sel.size;
+  hint.className = '';
+  if (!ht) { hint.textContent = S.over ? '게임이 끝났습니다' : mySeat() < 0 ? '관전 중' : '내 차례가 아닙니다'; return; }
+  if (!sel.size) { hint.textContent = '타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르세요'; return; }
+  const ids = [...sel], a = analyze(ids);
+  const own = new Set(playedIds());
+  const fits = S.table.filter(m => (S.init[mySeat()] || m.tiles.every(id => own.has(id))) && ids.every(id => !m.tiles.includes(id)) && analyze([...m.tiles, ...ids]).valid).length;
+  if (a.valid) { hint.textContent = `${ids.length}장 · ${TYPE_KO[a.type]} ${a.value}점 — 눌러서 내려놓기`; hint.className = 'ok'; }
+  else if (fits) { hint.textContent = `${ids.length}장 선택 · 초록색 조합을 누르면 붙습니다`; hint.className = 'ok'; }
+  else hint.textContent = ids.length < 3 ? `${ids.length}장 선택 · 3장 이상이어야 조합이 됩니다` : `${ids.length}장 선택 · 아직 그룹이나 런이 아닙니다`;
+}
+
+let sugList = [], sugIdx = -1, sugKey = '';
+function buildSuggestions() {
+  const hand = myHand(), me = mySeat(), out = [];
+  const r = aiFind(hand);
+  const seen = new Set();
+  for (const pick of [r.byTiles, r.byValue]) if (pick) for (const m of pick.melds) {
+    if (!analyze(m).valid) continue;
+    const k = keyOf(m); if (seen.has(k)) continue; seen.add(k); out.push(m);
+  }
+  out.sort((x, y) => analyze(y).value - analyze(x).value);
+  if (S.init[me]) {
+    for (const id of hand) for (const m of S.table) {
+      if (analyze([...m.tiles, id]).valid) { const k = 'x' + id; if (!seen.has(k)) { seen.add(k); out.push([id]); } break; }
+    }
+  }
+  return out;
+}
+function suggest() {
+  if (!humanTurn()) return;
+  const key = keyOf(myHand()) + '|' + keyOf(S.table.map(m => keyOf(m.tiles)));
+  if (key !== sugKey) { sugList = buildSuggestions(); sugIdx = -1; sugKey = key; }
+  if (!sugList.length) { flash(S.init[mySeat()] ? '내 패로 만들거나 붙일 수 있는 조합이 없습니다. 뽑기를 누르세요.' : '내 패만으로 만들 수 있는 조합이 없습니다. 뽑기를 누르세요.', 'good'); return; }
+  sugIdx = (sugIdx + 1) % sugList.length;
+  sel = new Set(sugList[sugIdx]);
+  render();
+  if (!S.init[mySeat()]) {
+    const total = sugList.filter(m => m.length >= 3).reduce((a, m) => a + analyze(m).value, 0);
+    flash(`추천 ${sugIdx + 1}/${sugList.length}. 내 패로 만들 수 있는 조합을 다 합치면 ${total}점${total >= 30 ? '이라 첫 등록이 가능합니다.' : '이라 아직 30점이 안 됩니다.'}`, 'good');
+  } else flash(`추천 ${sugIdx + 1}/${sugList.length}. ${sugList[sugIdx].length === 1 ? '초록색 조합을 누르면 붙습니다.' : "'새 조합'을 누르면 내려놓습니다."}`, 'good');
 }
 
 // ---------- input: drag + tap ----------
@@ -1100,6 +1167,8 @@ async function copyText(text, el) {
 
 // ---------- buttons ----------
 $('btnEnd').onclick = endTurn;
+$('btnSuggest').onclick = suggest;
+$('btnClearSel').onclick = () => { sel.clear(); render(); };
 $('btnReset').onclick = resetTurn;
 $('btnSortNum').onclick = () => { sortMode = 'num'; ls.set('rummikub-sort', sortMode); render(); };
 $('btnSortCol').onclick = () => { sortMode = 'col'; ls.set('rummikub-sort', sortMode); render(); };
