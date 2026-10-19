@@ -130,6 +130,8 @@ button{font:inherit;color:inherit}
 .opts{display:flex;gap:8px;margin:14px 0 18px}
 .opts button{flex:1;padding:10px 0;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.2);cursor:pointer}
 .opts button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:rgba(242,184,75,.1)}
+.opts button:disabled{cursor:default}
+.opts button:disabled:not([aria-pressed="true"]){opacity:.45}
 .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .rank{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px}
 .rank li{display:flex;justify-content:space-between;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.2);color:var(--ink);font-variant-numeric:tabular-nums}
@@ -284,12 +286,23 @@ button{font:inherit;color:inherit}
         <h3 id="soloTitle">혼자 연습하기</h3>
         <p class="sub">이 기기에서 컴퓨터 1~3명과 바로 플레이합니다. 진행 상황은 이 브라우저에 저장됩니다.</p>
         <div class="hrow">
+          <span class="sub" style="min-width:3.5em">컴퓨터</span>
           <div class="opts" id="aiOpts" style="margin:0;flex:1">
             <button type="button" id="ai1" data-n="1">1명</button>
             <button type="button" id="ai2" data-n="2" aria-pressed="true">2명</button>
             <button type="button" id="ai3" data-n="3">3명</button>
           </div>
-          <button class="btn" type="button" id="btnSolo">시작</button>
+        </div>
+        <div class="hrow">
+          <span class="sub" style="min-width:3.5em">난이도</span>
+          <div class="opts" id="diffOpts" style="margin:0;flex:1">
+            <button type="button" id="dEasy" data-d="easy">쉬움</button>
+            <button type="button" id="dNormal" data-d="normal">보통</button>
+            <button type="button" id="dHard" data-d="hard">어려움</button>
+          </div>
+        </div>
+        <div class="hrow">
+          <button class="btn primary" type="button" id="btnSolo" style="flex:1">시작</button>
           <button class="btn" type="button" id="btnResume" hidden>이어서 하기</button>
         </div>
       </div>
@@ -312,6 +325,14 @@ button{font:inherit;color:inherit}
           <div class="hrow" id="botCtl">
             <span class="sub">컴퓨터</span>
             <div class="stepper"><button type="button" id="lBotMinus" aria-label="컴퓨터 줄이기">−</button><span id="lBotN">0명</span><button type="button" id="lBotPlus" aria-label="컴퓨터 늘리기">＋</button></div>
+          </div>
+          <div class="hrow" id="diffCtl">
+            <span class="sub">컴퓨터 난이도</span>
+            <div class="opts" id="lDiffOpts" style="margin:0;flex:1">
+              <button type="button" id="lEasy" data-d="easy">쉬움</button>
+              <button type="button" id="lNormal" data-d="normal">보통</button>
+              <button type="button" id="lHard" data-d="hard">어려움</button>
+            </div>
           </div>
           <button class="btn primary" type="button" id="btnStart">게임 시작</button>
           <p class="sub" id="startHint"></p>
@@ -529,7 +550,10 @@ function makeGame(seats, v) {
   return st;
 }
 
-function startLocal(nAi) {
+const DIFF_KO = { easy: '쉬움', normal: '보통', hard: '어려움' };
+let diffPick = 'normal';
+const startLog = st => st.seats.some(x => x.t === 'a') ? `새 게임을 시작했습니다. 컴퓨터 난이도: ${DIFF_KO[st.diff] || '쉬움'}.` : '새 게임을 시작했습니다.';
+function startLocal(nAi, diff = diffPick) {
   leaveRoomSubs();
   mode = { kind: 'local' };
   const nick = myNick();
@@ -537,7 +561,8 @@ function startLocal(nAi) {
   for (let i = 1; i <= nAi; i++) seats.push({ t: 'a', nick: '컴퓨터 ' + i });
   S = makeGame(seats);
   S.nAi = nAi;
-  S.log = '새 게임을 시작했습니다.';
+  S.diff = DIFF_KO[diff] ? diff : 'normal';
+  S.log = startLog(S);
   sel.clear(); fresh.clear(); drawnId = null;
   setView('game');
   beginTurn();
@@ -705,7 +730,7 @@ function sortedHand() {
 }
 
 // ---------- AI ----------
-function aiFind(hand) {
+function aiFind(hand, cap = 40000) {
   const avail = new Array(52).fill(0), lists = {}, jids = [];
   for (const id of hand) {
     const t = T[id];
@@ -735,7 +760,7 @@ function aiFind(hand) {
   let iter = 0, bestT = null, bestV = null; const chosen = [];
   const estVal = c => c.need.reduce((a, k) => a + (k % 13) + 1, 0) * c.size / Math.max(1, c.need.length);
   (function rec(i, tiles, val, ju) {
-    if (++iter > 40000) return;
+    if (++iter > cap) return;
     if (tiles > 0) {
       if (!bestT || tiles > bestT.tiles || (tiles === bestT.tiles && val > bestT.val)) bestT = { tiles, val, list: chosen.slice() };
       if (!bestV || val > bestV.val) bestV = { tiles, val, list: chosen.slice() };
@@ -747,7 +772,7 @@ function aiFind(hand) {
       c.need.forEach(k => avail[k]--); chosen.push(c);
       rec(x, tiles + c.size, val + estVal(c), ju + c.j);
       chosen.pop(); c.need.forEach(k => avail[k]++);
-      if (iter > 40000) return;
+      if (iter > cap) return;
     }
   })(0, 0, 0, 0);
   const toIds = b => {
@@ -761,6 +786,122 @@ function aiFind(hand) {
   return { byTiles: toIds(bestT), byValue: toIds(bestV) };
 }
 
+// ---------- AI: arrangement solver ----------
+// Finds a way to lay out ALL given table tiles (plus any hand tiles) as valid melds,
+// using as many hand tiles as possible. Runs are searched as 3-5 tile pieces and merged after.
+const kindOf = id => T[id].c * 13 + T[id].n - 1;
+let CANDS = null, BYK = null, JCANDS = null;
+function buildCands() {
+  if (CANDS) return;
+  const out = [], seen = new Set();
+  const add = (ks, j) => { ks = ks.slice().sort((a, b) => a - b); const key = ks.join(',') + '|' + j; if (seen.has(key)) return; seen.add(key); out.push({ k: ks, j }); };
+  for (let c = 0; c < 4; c++) for (let s = 1; s <= 11; s++) for (let L = 3; L <= 5 && s + L - 1 <= 13; L++) {
+    for (let mask = 0; mask < (1 << L); mask++) {
+      let j = 0; const ks = [];
+      for (let i = 0; i < L; i++) if (mask & (1 << i)) j++; else ks.push(c * 13 + s + i - 1);
+      if (j <= 2 && ks.length) add(ks, j);
+    }
+  }
+  for (let n = 1; n <= 13; n++) for (let mask = 1; mask < 16; mask++) {
+    const ks = []; for (let c = 0; c < 4; c++) if (mask & (1 << c)) ks.push(c * 13 + n - 1);
+    for (let j = 0; j <= 2; j++) { const tot = ks.length + j; if (tot >= 3 && tot <= 4) add(ks, j); }
+  }
+  const size = m => m.k.length * 2 - m.j; // prefer melds made of real tiles, then bigger ones
+  CANDS = out;
+  BYK = Array.from({ length: 52 }, () => []);
+  out.forEach(m => m.k.forEach(k => BYK[k].push(m)));
+  BYK.forEach(l => l.sort((a, b) => size(b) - size(a)));
+  JCANDS = out.filter(m => m.j > 0).sort((a, b) => a.j - b.j || a.k.length - b.k.length);
+}
+const AI_TIMEOUT = { timeout: true };
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+function mergeRuns(melds) {
+  let merged = true;
+  while (merged) {
+    merged = false;
+    outer: for (let a = 0; a < melds.length; a++) for (let b = 0; b < melds.length; b++) {
+      if (a === b) continue;
+      const A = analyze(melds[a]), B = analyze(melds[b]);
+      if (A.type !== 'run' || B.type !== 'run') continue;
+      const C = analyze([...melds[a], ...melds[b]]);
+      if (C.valid && C.type === 'run') { melds[a] = [...melds[a], ...melds[b]]; melds.splice(b, 1); merged = true; break outer; }
+    }
+  }
+  return melds;
+}
+function solveArrangement(tableIds, handIds, ms, cap) {
+  buildCands();
+  const tC = new Array(52).fill(0), hC = new Array(52).fill(0); let tJ = 0, hJ = 0;
+  const tIds = {}, hIds = {};
+  const put = (o, k, id) => (o[k] = o[k] || []).push(id);
+  for (const id of tableIds) { if (T[id].j) { tJ++; put(tIds, 'J', id); } else { tC[kindOf(id)]++; put(tIds, kindOf(id), id); } }
+  for (const id of handIds) { if (T[id].j) { hJ++; put(hIds, 'J', id); } else { hC[kindOf(id)]++; put(hIds, kindOf(id), id); } }
+  const used = new Array(52).fill(0); let usedJ = 0;
+  const chosen = []; let best = null, nodes = 0;
+  const t0 = now(), total = handIds.length;
+  const handFromTable = () => { let s = 0; for (let k = 0; k < 52; k++) if (used[k] > tC[k]) s += used[k] - tC[k]; return s + Math.max(0, usedJ - tJ); };
+  function leaf() {
+    const rem = [];
+    for (const k in hIds) {
+      const uh = k === 'J' ? Math.max(0, usedJ - tJ) : Math.max(0, used[k] - tC[k]);
+      rem.push(...hIds[k].slice(uh));
+    }
+    const base = handFromTable();
+    if (best && base + rem.length < best.score) return;
+    const r = rem.length >= 3 ? aiFind(rem, cap).byTiles : null;
+    const extra = r ? r.melds.filter(m => analyze(m).valid) : [];
+    const score = base + extra.reduce((a, m) => a + m.length, 0);
+    const jUsed = Math.max(0, usedJ - tJ) + extra.reduce((a, m) => a + m.filter(id => T[id].j).length, 0);
+    if (!best || score > best.score || (score === best.score && jUsed < best.jUsed)) best = { score, jUsed, chosen: chosen.slice(), extra: extra.map(m => m.slice()) };
+  }
+  function rec() {
+    if ((++nodes & 127) === 0 && now() - t0 > ms) throw AI_TIMEOUT;
+    if (best && best.score === total && best.jUsed === 0) return;
+    let pick = -1;
+    for (let k = 0; k < 52; k++) if (used[k] < tC[k]) { pick = k; break; }
+    let list;
+    if (pick >= 0) list = BYK[pick];
+    else if (usedJ < tJ) list = JCANDS;
+    else { leaf(); return; }
+    for (const m of list) {
+      if (usedJ + m.j > tJ + hJ) continue;
+      let ok = true;
+      for (const x of m.k) if (used[x] >= tC[x] + hC[x]) { ok = false; break; }
+      if (!ok) continue;
+      for (const x of m.k) used[x]++;
+      usedJ += m.j; chosen.push(m);
+      rec();
+      chosen.pop(); usedJ -= m.j;
+      for (const x of m.k) used[x]--;
+    }
+  }
+  try { rec(); } catch (e) { if (e !== AI_TIMEOUT) throw e; }
+  if (!best) return null;
+  const take = {};
+  const next = k => { const i = take[k] = (take[k] || 0) + 1; const tl = tIds[k] || [], hl = hIds[k] || []; return i <= tl.length ? tl[i - 1] : hl[i - 1 - tl.length]; };
+  const melds = best.chosen.map(m => { const ids = m.k.map(k => next(k)); for (let i = 0; i < m.j; i++) ids.push(next('J')); return ids; });
+  melds.push(...best.extra);
+  if (melds.some(m => m.some(id => id === undefined))) return null;
+  mergeRuns(melds);
+  if (!melds.every(m => analyze(m).valid)) return null;
+  const placed = new Set(melds.flat());
+  if (placed.size !== melds.flat().length || !tableIds.every(id => placed.has(id))) return null;
+  const handUsed = handIds.filter(id => placed.has(id));
+  return { melds, handUsed, score: handUsed.length, jUsed: handUsed.filter(id => T[id].j).length };
+}
+// Put a new layout on the table, keeping melds that didn't change where they were.
+function applyLayout(newMelds) {
+  const old = new Map();
+  S.table.forEach((m, i) => { const k = keyOf(m.tiles); if (!old.has(k)) old.set(k, []); old.get(k).push({ m, i }); });
+  const kept = [], added = [];
+  for (const t of newMelds) {
+    const l = old.get(keyOf(t));
+    if (l && l.length) { const o = l.shift(); kept.push(o); } else added.push({ id: S.mid++, tiles: t.slice() });
+  }
+  kept.sort((a, b) => a.i - b.i);
+  S.table = [...kept.map(o => o.m), ...added];
+}
+
 // AI helpers. They mutate S.table and the given hand array in place.
 function aiSnap(hand) { return { table: S.table.map(m => ({ id: m.id, tiles: m.tiles.slice() })), hand: hand.slice(), mid: S.mid }; }
 function aiRestore(hand, sn) { S.table = sn.table.map(m => ({ id: m.id, tiles: m.tiles.slice() })); hand.splice(0, hand.length, ...sn.hand); S.mid = sn.mid; }
@@ -772,11 +913,11 @@ function aiPlayMelds(hand, pick) {
     m.forEach(id => hand.splice(hand.indexOf(id), 1));
   }
 }
-function aiExtend(hand) {
+function aiExtend(hand, allowJ = true) {
   let changed = true;
   while (changed && hand.length) {
     changed = false;
-    const order = hand.slice().sort((a, b) => (T[a].j ? 1 : 0) - (T[b].j ? 1 : 0));
+    const order = hand.filter(id => allowJ || !T[id].j).sort((a, b) => (T[a].j ? 1 : 0) - (T[b].j ? 1 : 0));
     for (const id of order) {
       const m = S.table.find(m => analyze([...m.tiles, id]).valid);
       if (m) { m.tiles.push(id); hand.splice(hand.indexOf(id), 1); changed = true; break; }
@@ -797,14 +938,57 @@ function aiHarvestJokers(hand) {
   return freed;
 }
 
+// Easy: play from hand, extend melds, pull spare jokers off the table.
+function aiEasy(hand) {
+  const start = aiSnap(hand);
+  aiPlayMelds(hand, aiFind(hand).byTiles); aiExtend(hand);
+  const planA = aiSnap(hand), nA = start.hand.length - hand.length;
+  aiRestore(hand, start);
+  const freed = aiHarvestJokers(hand);
+  if (freed.length) {
+    aiPlayMelds(hand, aiFind(hand).byTiles); aiExtend(hand);
+    const nB = start.hand.length - hand.length;
+    if (!freed.some(j => hand.includes(j)) && S.table.every(m => analyze(m.tiles).valid) && nB > nA) return;
+  }
+  aiRestore(hand, planA);
+}
+// Normal: also rework one table meld at a time (split a run, borrow from a group, swap a joker).
+function aiNormal(hand, allowJ) {
+  const ids = hand.filter(id => allowJ || !T[id].j);
+  let best = null, bi = -1;
+  const per = Math.max(15, Math.min(40, 500 / Math.max(1, S.table.length)));
+  S.table.forEach((m, i) => {
+    const r = solveArrangement(m.tiles, ids, per, 2500);
+    if (r && (!best || r.score > best.score)) { best = r; bi = i; }
+  });
+  if (best && best.score > 0) {
+    const rest = S.table.filter((_, i) => i !== bi);
+    S.table = rest;
+    S.table.push(...best.melds.map(t => ({ id: S.mid++, tiles: t })));
+    best.handUsed.forEach(id => hand.splice(hand.indexOf(id), 1));
+  } else aiPlayMelds(hand, aiFind(ids).byTiles);
+  aiExtend(hand, allowJ);
+}
+// Hard: rework the whole table at once.
+function aiHard(hand, allowJ) {
+  const ids = hand.filter(id => allowJ || !T[id].j);
+  const r = solveArrangement(S.table.flatMap(m => m.tiles), ids, 650, 3000);
+  if (r && r.score > 0) {
+    applyLayout(r.melds);
+    r.handUsed.forEach(id => hand.splice(hand.indexOf(id), 1));
+  }
+  aiExtend(hand, allowJ);
+}
+
 function aiTurn() {
   if (!S || S.over) return;
   const p = S.turn, seat = S.seats[p];
   if (!seat || seat.t !== 'a') return;
   const hand = S.hands[p], name = seat.nick;
+  const level = seat.diff || S.diff || 'easy';
   const wasInit = S.init[p];
   const start = aiSnap(hand);
-  let usedJoker = 0;
+  let reworked = false;
   if (!wasInit) {
     const r = aiFind(hand);
     let pick = null;
@@ -812,29 +996,40 @@ function aiTurn() {
     else if (r.byValue && r.byValue.value >= 30) pick = r.byValue;
     aiPlayMelds(hand, pick);
   } else {
-    // Plan A: play from hand only.
-    aiPlayMelds(hand, aiFind(hand).byTiles); aiExtend(hand);
-    const planA = aiSnap(hand), nA = start.hand.length - hand.length;
-    // Plan B: first pull jokers off the table, then play. Every pulled joker must go back down this turn.
-    aiRestore(hand, start);
-    const freed = aiHarvestJokers(hand);
-    let keepB = false;
-    if (freed.length) {
-      aiPlayMelds(hand, aiFind(hand).byTiles); aiExtend(hand);
-      const nB = start.hand.length - hand.length;
-      keepB = !freed.some(j => hand.includes(j)) && S.table.every(m => analyze(m.tiles).valid) && nB > nA;
-      if (keepB) usedJoker = freed.length;
+    const n = () => start.hand.length - hand.length;
+    const jokersUsed = () => start.hand.filter(id => T[id].j && !hand.includes(id)).length;
+    const valid = () => S.table.every(m => analyze(m.tiles).valid);
+    aiEasy(hand);
+    let best = aiSnap(hand), bestN = n(), bestJ = jokersUsed();
+    const tryPlan = (fn, tag) => {
+      aiRestore(hand, start); fn();
+      const k = n();
+      if (valid() && (k > bestN || (k === bestN && jokersUsed() < bestJ))) { best = aiSnap(hand); bestN = k; bestJ = jokersUsed(); reworked = tag; }
+    };
+    if (level !== 'easy') {
+      const fn = level === 'hard' ? aiHard : aiNormal;
+      tryPlan(() => fn(hand, true), true);
+      // Keep jokers for later unless they are needed to win or someone is close to going out.
+      const oppMin = Math.min(...S.hands.filter((_, i) => i !== p).map(h => h.length));
+      const winning = bestN === start.hand.length;
+      if (bestJ > 0 && !winning && oppMin > (level === 'hard' ? 4 : 6)) {
+        const keepBest = best, keepN = bestN;
+        aiRestore(hand, start); fn(hand, false);
+        const k = n();
+        if (valid() && k >= keepN - bestJ) { best = aiSnap(hand); bestN = k; bestJ = jokersUsed(); }
+        else { best = keepBest; }
+      }
     }
-    if (!keepB) aiRestore(hand, planA);
+    aiRestore(hand, best);
   }
   const before = new Set(start.table.flatMap(m => m.tiles));
-  const onTable = S.table.flatMap(m => m.tiles);
-  fresh = new Set(onTable.filter(id => !before.has(id) || (T[id].j && usedJoker)));
+  fresh = new Set(S.table.flatMap(m => m.tiles).filter(id => !before.has(id)));
   const n = start.hand.length - hand.length;
   const firstNow = !wasInit && n > 0;
   if (firstNow) S.init[p] = true;
-  if (n > 0) { S.passes = 0; S.log = `${name}: ${n}장을 내려놓았습니다${firstNow ? ' (첫 등록)' : ''}${usedJoker ? ` · 테이블의 조커 ${usedJoker}개를 가져다 썼습니다` : ''}.`; }
-  else S.log = drawFor(p) != null ? `${name}: 낼 수 없어 한 장을 뽑았습니다.` : `${name}: 낼 수 없어 넘겼습니다.`;
+  const tableChanged = keyOf(S.table.map(m => keyOf(m.tiles))) !== keyOf(start.table.map(m => keyOf(m.tiles)));
+  if (n > 0) { S.passes = 0; S.log = `${name}: ${n}장을 내려놓았습니다${firstNow ? ' (첫 등록)' : ''}${reworked && tableChanged ? ' · 테이블을 다시 짰습니다' : ''}.`; }
+  else { aiRestore(hand, start); S.log = drawFor(p) != null ? `${name}: 낼 수 없어 한 장을 뽑았습니다.` : `${name}: 낼 수 없어 넘겼습니다.`; }
   finishTurn();
 }
 
@@ -882,7 +1077,7 @@ async function createRoom() {
       if (!snap.exists) break;
     }
     const now = Date.now();
-    await ref.set({ status: 'lobby', host: ME.uid, hostNick: myNick(), bots: homeBots, createdAt: now, updatedAt: now, v: 0, g: null });
+    await ref.set({ status: 'lobby', host: ME.uid, hostNick: myNick(), bots: homeBots, diff: diffPick, createdAt: now, updatedAt: now, v: 0, g: null });
     await ME.db.doc(`rooms/${code}/seats/${ME.uid}`).set({ nick: myNick(), joinedAt: now });
     enterRoom(code);
   } catch (e) {
@@ -994,7 +1189,8 @@ async function startRoomGame() {
   for (let i = 1; i <= (mode.room.bots || 0); i++) seats.push({ t: 'a', nick: '컴퓨터 ' + i });
   if (seats.length < 2) return flash('2명 이상이어야 시작할 수 있습니다. 친구를 초대하거나 컴퓨터를 추가하세요.');
   const st = makeGame(seats, (mode.room.v || 0) + 1);
-  st.log = '게임을 시작했습니다.';
+  st.diff = DIFF_KO[mode.room.diff] ? mode.room.diff : 'normal';
+  st.log = startLog(st);
   st.snap = { table: [], hand: st.hands[0].slice() };
   $('btnStart').disabled = true;
   try {
@@ -1011,11 +1207,13 @@ async function backToLobby() {
 // Same table, same players, fresh deal.
 function rematch() {
   if (!S || !S.over) return;
-  if (!isRoom()) return startLocal(S.nAi ?? S.seats.filter(x => x.t === 'a').length);
+  if (!isRoom()) return startLocal(S.nAi ?? S.seats.filter(x => x.t === 'a').length, S.diff || diffPick);
   if (!isHost()) return;
   const seats = S.seats.map(x => ({ ...x }));
+  const diff = S.diff;
   S = makeGame(seats, S.v);
-  S.log = '새 게임을 시작했습니다.';
+  S.diff = diff;
+  S.log = startLog(S);
   sel.clear(); fresh.clear(); drawnId = null;
   beginTurn();
 }
@@ -1059,6 +1257,7 @@ function setView(v) {
 }
 
 function renderHome() {
+  document.querySelectorAll('#diffOpts button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.d === diffPick)));
   $('botN').textContent = homeBots + '명';
   $('botMinus').disabled = homeBots <= 0;
   $('botPlus').disabled = homeBots >= 3;
@@ -1109,6 +1308,9 @@ function renderLobby() {
   for (let i = total; i < 4; i++) html += `<li class="emptyseat"><span class="nm">빈 자리 · 친구를 초대하세요</span></li>`;
   $('seatList').innerHTML = html;
   $('botCtl').hidden = !host;
+  const rd = r && DIFF_KO[r.diff] ? r.diff : 'normal';
+  $('diffCtl').hidden = !bots;
+  document.querySelectorAll('#lDiffOpts button').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.d === rd)); b.disabled = !host; });
   $('lBotN').textContent = bots + '명';
   $('lBotMinus').disabled = bots <= 0;
   $('lBotPlus').disabled = bots >= 3 || total >= 4;
@@ -1313,6 +1515,12 @@ $('rulesClose').onclick = () => { $('ovRules').hidden = true; };
 $('btnHome').onclick = () => { if (isRoom()) leaveRoom(); else { saveLocal(); setView('home'); } };
 $('aiOpts').onclick = e => { const b = e.target.closest('button'); if (!b) return; pickN = +b.dataset.n; document.querySelectorAll('#aiOpts button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
 $('btnSolo').onclick = () => startLocal(pickN);
+$('diffOpts').onclick = e => { const b = e.target.closest('button'); if (!b) return; diffPick = b.dataset.d; ls.set('rummikub-diff', diffPick); renderHome(); };
+$('lDiffOpts').onclick = async e => {
+  const b = e.target.closest('button'); if (!b || !isHost() || !mode.room) return;
+  diffPick = b.dataset.d; ls.set('rummikub-diff', diffPick);
+  try { await mode.ref.update({ diff: diffPick, updatedAt: Date.now() }); } catch (err) { flash('변경하지 못했습니다.'); }
+};
 $('btnResume').onclick = () => { const l = loadLocal(); if (!l) return; leaveRoomSubs(); mode = { kind: 'local' }; S = l; setView('game'); render(); scheduleAI(); };
 $('botMinus').onclick = () => { homeBots = Math.max(0, homeBots - 1); renderHome(); };
 $('botPlus').onclick = () => { homeBots = Math.min(3, homeBots + 1); renderHome(); };
@@ -1383,6 +1591,7 @@ async function initMultiplayer() {
 function start(data) {
   $('nick').value = ls.get('rummikub-nick') || '';
   sortMode = ls.get('rummikub-sort') === 'col' ? 'col' : 'num';
+  { const d = ls.get('rummikub-diff'); if (DIFF_KO[d]) diffPick = d; }
   if (data && data.state && data.local) { S = data.state; mode = { kind: 'local' }; setView('game'); render(); scheduleAI(); }
   else setView('home');
   initMultiplayer();
