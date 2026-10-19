@@ -67,7 +67,6 @@ button{font:inherit;color:inherit}
 .newzone{display:flex;align-items:center;justify-content:center;min-width:calc(var(--tw)*3.6);height:calc(var(--tw)*1.36 + 15px);padding:0 14px;border-radius:10px;border:1.5px dashed rgba(236,231,220,.28);color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:border-color .15s, background .15s}
 .newzone.hl{border-color:var(--accent);color:var(--accent);background:rgba(242,184,75,.08)}
 .newzone:disabled{opacity:.45;cursor:default}
-.meld.fit{border-color:var(--ok);background:rgba(127,211,164,.10);cursor:pointer}
 .dock{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
 .dock .newzone{flex:1;min-width:0;height:auto;min-height:52px;flex-direction:column;gap:2px;padding:6px 12px;text-align:center}
 .dock .newzone b{font-size:14px;font-weight:700}
@@ -1044,8 +1043,7 @@ function render() {
   for (const m of S.table) {
     const a = analyze(m.tiles);
     const order = a.valid ? a.order : m.tiles;
-    const fit = ht && sel.size && (S.init[mySeat()] || m.tiles.every(id => mine.has(id))) && [...sel].every(id => !m.tiles.includes(id)) && analyze([...m.tiles, ...sel]).valid;
-    html += `<div class="meld ${a.valid ? '' : 'invalid'} ${fit ? 'fit' : ''}" data-drop="meld" data-mid="${m.id}">` +
+    html += `<div class="meld ${a.valid ? '' : 'invalid'}" data-drop="meld" data-mid="${m.id}">` +
       order.map(id => tileHTML(id, mine.has(id) ? 'mine' : '', a.jv[id])).join('') +
       (ht && sel.size ? `<button class="slot" type="button" data-drop="meld" data-mid="${m.id}" aria-label="이 조합에 추가">＋</button>` : '') +
       `</div>`;
@@ -1097,7 +1095,6 @@ function render() {
 }
 
 // ---------- dock: selection status + suggestions ----------
-const TYPE_KO = { run: '런', group: '그룹' };
 function renderDock(ht) {
   const nz = $('dockNew'), hint = $('dockHint');
   nz.disabled = !ht;
@@ -1106,12 +1103,7 @@ function renderDock(ht) {
   hint.className = '';
   if (!ht) { hint.textContent = S.over ? '게임이 끝났습니다' : mySeat() < 0 ? '관전 중' : '내 차례가 아닙니다'; return; }
   if (!sel.size) { hint.textContent = '타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르세요'; return; }
-  const ids = [...sel], a = analyze(ids);
-  const own = new Set(playedIds());
-  const fits = S.table.filter(m => (S.init[mySeat()] || m.tiles.every(id => own.has(id))) && ids.every(id => !m.tiles.includes(id)) && analyze([...m.tiles, ...ids]).valid).length;
-  if (a.valid) { hint.textContent = `${ids.length}장 · ${TYPE_KO[a.type]} ${a.value}점 — 눌러서 내려놓기`; hint.className = 'ok'; }
-  else if (fits) { hint.textContent = `${ids.length}장 선택 · 초록색 조합을 누르면 붙습니다`; hint.className = 'ok'; }
-  else hint.textContent = ids.length < 3 ? `${ids.length}장 선택 · 3장 이상이어야 조합이 됩니다` : `${ids.length}장 선택 · 아직 그룹이나 런이 아닙니다`;
+  hint.textContent = `${sel.size}장 선택 · 여기를 누르면 새 조합으로 내려놓고, 테이블의 조합을 누르면 거기에 붙습니다`;
 }
 
 // ---------- input: drag + tap ----------
