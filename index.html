@@ -675,9 +675,9 @@ function moveTo(ids, target) {
   commit();
 }
 
-function flash(text, kind = 'err') {
+function flash(text, kind = 'err', ms = 3800) {
   flashMsg = { text, kind }; clearTimeout(flashTimer);
-  flashTimer = setTimeout(() => { flashMsg = null; renderMsg(); }, 3800);
+  flashTimer = setTimeout(() => { flashMsg = null; renderMsg(); }, ms);
   renderMsg();
 }
 
@@ -698,12 +698,16 @@ function endTurn() {
   const me = mySeat(), nick = S.seats[me].nick;
   const played = playedIds();
   if (!played.length) {
+    const reworked = keyOf(S.table.map(m => keyOf(m.tiles))) !== keyOf(S.snap.table.map(m => keyOf(m.tiles)));
     S.table = S.snap.table.map(m => ({ id: m.id, tiles: m.tiles.slice() }));
     S.hands[me] = S.snap.hand.slice();
     const got = drawFor(me);
     drawnId = got;
     S.log = got != null ? `${nick}: 타일 한 장을 뽑았습니다.` : `${nick}: 남은 타일이 없어 넘겼습니다.`;
-    sel.clear(); finishTurn(); return;
+    sel.clear(); finishTurn();
+    const what = got != null ? `${describe(got)}을(를) 뽑았습니다.` : '남은 타일이 없어 넘겼습니다.';
+    flash(reworked ? `내 패에서 낸 타일이 없어서 테이블을 원래대로 되돌리고 ${what}` : what, 'good', 6000);
+    return;
   }
   const bad = S.table.filter(m => !analyze(m.tiles).valid);
   if (bad.length) return flash(`유효하지 않은 조합이 ${bad.length}개 있습니다. 고치거나 되돌리기를 누르세요.`);
@@ -1380,7 +1384,7 @@ function render() {
   let info;
   if (S.over) info = '게임이 끝났습니다.';
   else if (me < 0) info = '관전 중';
-  else if (!ht) info = `내 타일 <b>${myHand().length}</b>장`;
+  else if (!ht) info = `내 타일 <b>${myHand().length}</b>장${drawnId != null && myHand().includes(drawnId) ? ` · 방금 뽑은 타일 <b>${describe(drawnId)}</b>` : ''}`;
   else if (!S.init[me]) {
     const pts = initPoints(), w = Math.min(100, pts / 30 * 100);
     info = `첫 등록 <span class="meter ${pts >= 30 ? 'full' : ''}"><span style="width:${w}%"></span></span><b>${pts}</b> / 30점`;
@@ -1397,7 +1401,7 @@ function render() {
     end.textContent = canRestart ? '새 게임' : '방장 대기 중';
   } else {
     end.disabled = !ht;
-    end.textContent = played.length || tableChanged ? '턴 끝내기' : (S.pool.length ? '뽑기' : '넘기기');
+    end.textContent = played.length ? '턴 끝내기' : tableChanged ? (S.pool.length ? '되돌리고 뽑기' : '되돌리고 넘기기') : (S.pool.length ? '뽑기' : '넘기기');
   }
 
   renderMsg();
