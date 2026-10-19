@@ -344,7 +344,6 @@ button{font:inherit;color:inherit}
     <div class="dock">
       <button class="newzone" type="button" id="dockNew" data-drop="new"><b>＋ 새 조합</b><small id="dockHint">타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르세요</small></button>
       <div class="side">
-        <button class="btn" type="button" id="btnSuggest" title="내 패로 만들 수 있는 조합을 골라 줍니다">추천</button>
         <button class="btn" type="button" id="btnClearSel">선택 해제</button>
       </div>
     </div>
@@ -1051,7 +1050,7 @@ function render() {
       (ht && sel.size ? `<button class="slot" type="button" data-drop="meld" data-mid="${m.id}" aria-label="이 조합에 추가">＋</button>` : '') +
       `</div>`;
   }
-  if (!S.table.length) html += `<p class="empty-hint">테이블이 비어 있습니다. 내 패에서 타일을 눌러 고른 뒤 아래 '새 조합'을 누르세요. 막막하면 '추천'을 눌러 보세요. 첫 등록은 내 타일만으로 30점 이상이어야 합니다.</p>`;
+  if (!S.table.length) html += `<p class="empty-hint">테이블이 비어 있습니다. 내 패에서 타일을 눌러 고른 뒤 아래 '새 조합'을 누르세요. 첫 등록은 내 타일만으로 30점 이상이어야 합니다.</p>`;
   $('table').innerHTML = html;
 
   if (me < 0) {
@@ -1103,7 +1102,6 @@ function renderDock(ht) {
   const nz = $('dockNew'), hint = $('dockHint');
   nz.disabled = !ht;
   nz.classList.toggle('hl', ht && sel.size > 0);
-  $('btnSuggest').disabled = !ht;
   $('btnClearSel').disabled = !ht || !sel.size;
   hint.className = '';
   if (!ht) { hint.textContent = S.over ? '게임이 끝났습니다' : mySeat() < 0 ? '관전 중' : '내 차례가 아닙니다'; return; }
@@ -1114,37 +1112,6 @@ function renderDock(ht) {
   if (a.valid) { hint.textContent = `${ids.length}장 · ${TYPE_KO[a.type]} ${a.value}점 — 눌러서 내려놓기`; hint.className = 'ok'; }
   else if (fits) { hint.textContent = `${ids.length}장 선택 · 초록색 조합을 누르면 붙습니다`; hint.className = 'ok'; }
   else hint.textContent = ids.length < 3 ? `${ids.length}장 선택 · 3장 이상이어야 조합이 됩니다` : `${ids.length}장 선택 · 아직 그룹이나 런이 아닙니다`;
-}
-
-let sugList = [], sugIdx = -1, sugKey = '';
-function buildSuggestions() {
-  const hand = myHand(), me = mySeat(), out = [];
-  const r = aiFind(hand);
-  const seen = new Set();
-  for (const pick of [r.byTiles, r.byValue]) if (pick) for (const m of pick.melds) {
-    if (!analyze(m).valid) continue;
-    const k = keyOf(m); if (seen.has(k)) continue; seen.add(k); out.push(m);
-  }
-  out.sort((x, y) => analyze(y).value - analyze(x).value);
-  if (S.init[me]) {
-    for (const id of hand) for (const m of S.table) {
-      if (analyze([...m.tiles, id]).valid) { const k = 'x' + id; if (!seen.has(k)) { seen.add(k); out.push([id]); } break; }
-    }
-  }
-  return out;
-}
-function suggest() {
-  if (!humanTurn()) return;
-  const key = keyOf(myHand()) + '|' + keyOf(S.table.map(m => keyOf(m.tiles)));
-  if (key !== sugKey) { sugList = buildSuggestions(); sugIdx = -1; sugKey = key; }
-  if (!sugList.length) { flash(S.init[mySeat()] ? '내 패로 만들거나 붙일 수 있는 조합이 없습니다. 뽑기를 누르세요.' : '내 패만으로 만들 수 있는 조합이 없습니다. 뽑기를 누르세요.', 'good'); return; }
-  sugIdx = (sugIdx + 1) % sugList.length;
-  sel = new Set(sugList[sugIdx]);
-  render();
-  if (!S.init[mySeat()]) {
-    const total = sugList.filter(m => m.length >= 3).reduce((a, m) => a + analyze(m).value, 0);
-    flash(`추천 ${sugIdx + 1}/${sugList.length}. 내 패로 만들 수 있는 조합을 다 합치면 ${total}점${total >= 30 ? '이라 첫 등록이 가능합니다.' : '이라 아직 30점이 안 됩니다.'}`, 'good');
-  } else flash(`추천 ${sugIdx + 1}/${sugList.length}. ${sugList[sugIdx].length === 1 ? '초록색 조합을 누르면 붙습니다.' : "'새 조합'을 누르면 내려놓습니다."}`, 'good');
 }
 
 // ---------- input: drag + tap ----------
@@ -1224,7 +1191,6 @@ async function copyText(text, el) {
 
 // ---------- buttons ----------
 $('btnEnd').onclick = endTurn;
-$('btnSuggest').onclick = suggest;
 $('btnClearSel').onclick = () => { sel.clear(); render(); };
 $('btnReset').onclick = resetTurn;
 $('btnSortNum').onclick = () => { sortMode = 'num'; ls.set('rummikub-sort', sortMode); render(); };
