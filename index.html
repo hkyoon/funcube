@@ -358,6 +358,7 @@ button{font:inherit;color:inherit}
     <ul class="rank" id="endRank"></ul>
     <div class="row">
       <button class="btn" type="button" id="endClose">테이블 보기</button>
+      <button class="btn" type="button" id="endLobby" hidden>로비로</button>
       <button class="btn primary" type="button" id="endAgain">다시 하기</button>
     </div>
   </div>
@@ -951,6 +952,18 @@ async function backToLobby() {
   try { await mode.ref.update({ status: 'lobby', g: null, v: (S && S.v || 0) + 1, updatedAt: Date.now() }); } catch (e) { flash('로비로 돌아가지 못했습니다.'); }
 }
 
+// Same table, same players, fresh deal.
+function rematch() {
+  if (!S || !S.over) return;
+  if (!isRoom()) return startLocal(S.nAi ?? S.seats.filter(x => x.t === 'a').length);
+  if (!isHost()) return;
+  const seats = S.seats.map(x => ({ ...x }));
+  S = makeGame(seats, S.v);
+  S.log = '새 게임을 시작했습니다.';
+  sel.clear(); fresh.clear(); drawnId = null;
+  beginTurn();
+}
+
 let replaceArm = 0;
 function hostReplaceCurrent() {
   if (!isHost() || !S || S.over) return;
@@ -1120,8 +1133,14 @@ function render() {
   $('btnReset').disabled = !ht || (!played.length && !tableChanged);
   $('btnSortNum').disabled = $('btnSortCol').disabled = me < 0;
   const end = $('btnEnd');
-  end.disabled = !ht;
-  end.textContent = played.length || tableChanged ? '턴 끝내기' : (S.pool.length ? '뽑기' : '넘기기');
+  if (S.over) {
+    const canRestart = !isRoom() || isHost();
+    end.disabled = !canRestart;
+    end.textContent = canRestart ? '새 게임' : '방장 대기 중';
+  } else {
+    end.disabled = !ht;
+    end.textContent = played.length || tableChanged ? '턴 끝내기' : (S.pool.length ? '뽑기' : '넘기기');
+  }
 
   renderMsg();
 
@@ -1133,8 +1152,9 @@ function render() {
     const idx = S.seats.map((_, i) => i).sort((a, b) => S.over.pen[a] - S.over.pen[b]);
     $('endRank').innerHTML = idx.map(i => `<li class="${i === w ? 'win' : ''}"><span>${esc(S.seats[i].nick)} · ${S.hands[i].length}장</span><span>${S.over.pen[i] ? '−' + S.over.pen[i] : '0'}점</span></li>`).join('');
     const again = $('endAgain');
-    if (isRoom()) { again.hidden = !isHost(); again.textContent = '로비로 돌아가기'; if (!isHost()) $('endSub').textContent += ' 방장이 다시 시작하면 자동으로 로비로 이동합니다.'; }
-    else { again.hidden = false; again.textContent = '다시 하기'; }
+    again.hidden = isRoom() && !isHost();
+    $('endLobby').hidden = !isHost();
+    if (isRoom() && !isHost()) $('endSub').textContent += ' 방장이 다시 시작하면 새 게임이 자동으로 시작됩니다.';
     ov.hidden = false;
   } else ov.hidden = true;
 }
@@ -1227,7 +1247,7 @@ async function copyText(text, el) {
 }
 
 // ---------- buttons ----------
-$('btnEnd').onclick = endTurn;
+$('btnEnd').onclick = () => (S && S.over ? rematch() : endTurn());
 $('btnClearSel').onclick = () => { sel.clear(); render(); };
 $('btnReset').onclick = resetTurn;
 $('btnSortNum').onclick = () => { sortMode = 'num'; ls.set('rummikub-sort', sortMode); render(); };
@@ -1252,7 +1272,8 @@ $('btnLeaveLobby').onclick = () => isHost() ? closeRoom() : leaveRoom();
 $('btnCopyLink').onclick = () => copyText(inviteBase() + '#' + mode.code, $('inviteLink'));
 $('btnCopyMsg').onclick = () => copyText(`루미큐브 같이 해요! 방 코드: ${mode.code}\n링크로 들어오면 바로 입장돼요: ${inviteBase()}#${mode.code}`, $('inviteLink'));
 $('endClose').onclick = () => { overSeenV = S ? S.v : -1; render(); };
-$('endAgain').onclick = () => { $('ovEnd').hidden = true; if (isRoom()) backToLobby(); else { overSeenV = S ? S.v : -1; setView('home'); } };
+$('endAgain').onclick = () => { $('ovEnd').hidden = true; rematch(); };
+$('endLobby').onclick = () => { $('ovEnd').hidden = true; backToLobby(); };
 
 // ---------- Firebase backend (GitHub Pages) ----------
 // Firestore's compat API matches the shape this page already uses (doc/collection/get/set/update/delete/onSnapshot).
