@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script src="config.js"></script>
 </head>
 <body>
 <title>루미큐브</title>
@@ -339,6 +340,9 @@ button{font:inherit;color:inherit}
 (() => {
 'use strict';
 const ARTIFACT_URL = 'https://claude.ai/artifact/TqSzkjLJn9xN9Cp7Ak8kkP';
+let BACKEND = 'none'; // 'claude' | 'firebase' | 'none'
+const inviteBase = () => BACKEND === 'firebase' ? location.href.split('#')[0] : ARTIFACT_URL;
+const denied = e => !!e && (e.code === 'invalid_argument' || e.code === 'permission-denied');
 // ---------- tiles ----------
 const T = [];
 for (let c = 0; c < 4; c++) for (let n = 1; n <= 13; n++) for (let k = 0; k < 2; k++) T.push({ id: T.length, c, n, j: false });
@@ -686,7 +690,7 @@ async function pushRoom() {
     try { await mode.ref.update(p); }
     catch (e) {
       if (e && e.code === 'unavailable') { await sleep(400 + Math.random() * 600); try { await mode.ref.update(p); } catch (e2) { flash('저장하지 못했습니다. 연결을 확인하세요.'); } }
-      else if (e && e.code === 'invalid_argument') flash('이 페이지에서 게임 기록을 저장할 권한이 없습니다.');
+      else if (denied(e)) flash('이 페이지에서 게임 기록을 저장할 권한이 없습니다.');
       else flash('저장하지 못했습니다. 잠시 뒤 다시 시도하세요.');
     }
   }
@@ -700,6 +704,7 @@ function leaveRoomSubs() {
 
 async function createRoom() {
   if (!ME.db || !ME.uid) return;
+  ls.set('rummikub-nick', myNick());
   const btn = $('btnCreate'); btn.disabled = true;
   try {
     let code, ref;
@@ -713,12 +718,13 @@ async function createRoom() {
     await ME.db.doc(`rooms/${code}/seats/${ME.uid}`).set({ nick: myNick(), joinedAt: now });
     enterRoom(code);
   } catch (e) {
-    flash(e && e.code === 'invalid_argument' ? '방을 만들 권한이 없습니다. 페이지 공유 설정을 확인하세요.' : e && e.code === 'quota_exceeded' ? '저장 공간이 가득 찼습니다. 오래된 방을 닫아 주세요.' : '방을 만들지 못했습니다. 잠시 뒤 다시 시도하세요.');
+    flash(denied(e) ? '방을 만들 권한이 없습니다. 페이지 공유 설정을 확인하세요.' : e && e.code === 'quota_exceeded' ? '저장 공간이 가득 찼습니다. 오래된 방을 닫아 주세요.' : '방을 만들지 못했습니다. 잠시 뒤 다시 시도하세요.');
   } finally { btn.disabled = false; }
 }
 
 async function joinRoom(code) {
   code = (code || '').toUpperCase().trim();
+  ls.set('rummikub-nick', myNick());
   if (!validCode(code)) return flash('방 코드는 4자리입니다.');
   if (!ME.db || !ME.uid) return flash('멀티플레이를 쓸 수 없는 상태입니다.');
   try {
@@ -734,7 +740,7 @@ async function joinRoom(code) {
     }
     enterRoom(code);
   } catch (e) {
-    flash(e && e.code === 'invalid_argument' ? '이 방에 참가할 권한이 없습니다. 방장에게 페이지 공유를 요청하세요.' : '입장하지 못했습니다. 잠시 뒤 다시 시도하세요.');
+    flash(denied(e) ? '이 방에 참가할 권한이 없습니다. 방장에게 페이지 공유를 요청하세요.' : '입장하지 못했습니다. 잠시 뒤 다시 시도하세요.');
   }
 }
 
@@ -820,7 +826,7 @@ async function startRoomGame() {
   for (let i = 1; i <= (mode.room.bots || 0); i++) seats.push({ t: 'a', nick: '컴퓨터 ' + i });
   if (seats.length < 2) return flash('2명 이상이어야 시작할 수 있습니다. 친구를 초대하거나 컴퓨터를 추가하세요.');
   const st = makeGame(seats, (mode.room.v || 0) + 1);
-  st.log = `게임을 시작했습니다. ${seats[0].nick} 님 차례입니다.`;
+  st.log = '게임을 시작했습니다.';
   st.snap = { table: [], hand: st.hands[0].slice() };
   $('btnStart').disabled = true;
   try {
@@ -882,7 +888,7 @@ function renderHome() {
   const ok = !!(ME.db && ME.uid);
   $('btnCreate').disabled = !ok || ME.canWrite === false;
   $('btnJoin').disabled = !ok;
-  if (!ok) { note.hidden = false; note.textContent = ME.ready ? '방 만들기와 초대는 claude.ai에 로그인해서 이 페이지를 열 때 쓸 수 있습니다. 지금은 혼자 연습하기만 할 수 있습니다.' : '멀티플레이 연결 중…'; }
+  if (!ok) { note.hidden = false; note.textContent = !ME.ready ? '온라인 연결 중…' : ME.fbError ? ME.fbError : BACKEND === 'none' && !window.claude ? '온라인 방 기능이 아직 설정되지 않았습니다 (config.js에 Firebase 설정 필요). 지금은 혼자 연습하기만 할 수 있습니다.' : '방 만들기와 초대는 claude.ai에 로그인해서 이 페이지를 열 때 쓸 수 있습니다. 지금은 혼자 연습하기만 할 수 있습니다.'; }
   else if (ME.canWrite === false) { note.hidden = false; note.textContent = '이 페이지에 대한 권한이 보기 전용이라 방을 만들거나 참가할 수 없습니다. 방은 관전만 할 수 있어요. 방장에게 참여자(또는 편집자) 권한을 요청하세요.'; }
   else note.hidden = true;
   renderRoomList();
@@ -903,7 +909,7 @@ function renderLobby() {
   if (!isRoom()) return;
   const r = mode.room, host = isHost();
   $('lobbyCode').innerHTML = mode.code.split('').map(letterTile).join('');
-  const link = ARTIFACT_URL + '#' + mode.code;
+  const link = inviteBase() + '#' + mode.code;
   $('inviteLink').textContent = link;
   const seats = mode.seatsList;
   const bots = r ? (r.bots || 0) : 0;
@@ -925,7 +931,7 @@ function renderLobby() {
   const playable = Math.min(seats.length, 4 - bots) + bots;
   $('btnStart').disabled = playable < 2;
   $('startHint').textContent = !r ? '방 정보를 불러오는 중…' : host ? (playable < 2 ? '2명 이상이어야 시작할 수 있습니다.' : '모두 모이면 게임 시작을 누르세요.') : `${r.hostNick || '방장'} 님이 게임을 시작하면 자동으로 넘어갑니다.`;
-  $('accessNote').hidden = !host;
+  $('accessNote').hidden = !host || BACKEND !== 'claude';
   $('btnLeaveLobby').textContent = host ? '방 닫고 나가기' : '방 나가기';
 }
 
@@ -1114,14 +1120,38 @@ $('lBotMinus').onclick = () => setBots((mode.room && mode.room.bots || 0) - 1);
 $('lBotPlus').onclick = () => setBots((mode.room && mode.room.bots || 0) + 1);
 $('btnStart').onclick = startRoomGame;
 $('btnLeaveLobby').onclick = () => isHost() ? closeRoom() : leaveRoom();
-$('btnCopyLink').onclick = () => copyText(ARTIFACT_URL + '#' + mode.code, $('inviteLink'));
-$('btnCopyMsg').onclick = () => copyText(`루미큐브 같이 해요! 방 코드: ${mode.code}\n링크로 들어오면 바로 입장돼요: ${ARTIFACT_URL}#${mode.code}`, $('inviteLink'));
+$('btnCopyLink').onclick = () => copyText(inviteBase() + '#' + mode.code, $('inviteLink'));
+$('btnCopyMsg').onclick = () => copyText(`루미큐브 같이 해요! 방 코드: ${mode.code}\n링크로 들어오면 바로 입장돼요: ${inviteBase()}#${mode.code}`, $('inviteLink'));
 $('endClose').onclick = () => { overSeenV = S ? S.v : -1; render(); };
 $('endAgain').onclick = () => { $('ovEnd').hidden = true; if (isRoom()) backToLobby(); else { overSeenV = S ? S.v : -1; setView('home'); } };
 
+// ---------- Firebase backend (GitHub Pages) ----------
+// Firestore's compat API matches the shape this page already uses (doc/collection/get/set/update/delete/onSnapshot).
+const FB_VER = '10.12.2';
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); });
+}
+async function initFirebase(cfg) {
+  const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+  await loadScript(base + 'firebase-app-compat.js');
+  await Promise.all([loadScript(base + 'firebase-auth-compat.js'), loadScript(base + 'firebase-firestore-compat.js')]);
+  firebase.initializeApp(cfg);
+  const cred = await firebase.auth().signInAnonymously();
+  ME.uid = cred.user.uid;
+  return firebase.firestore();
+}
+
 // ---------- boot ----------
 async function initMultiplayer() {
-  const [db, user] = await Promise.all([window.claude?.use?.('db') ?? null, window.claude?.use?.('user') ?? null]).catch(() => [null, null]);
+  const cfg = window.FIREBASE_CONFIG;
+  let db = null, user = null;
+  if (cfg && cfg.apiKey && cfg.projectId) {
+    try { db = await initFirebase(cfg); BACKEND = 'firebase'; ME.canWrite = true; }
+    catch (e) { console.error(e); ME.fbError = e && e.code === 'auth/admin-restricted-operation' ? 'Firebase에서 익명 로그인이 꺼져 있어 온라인 방을 쓸 수 없습니다. Authentication → Sign-in method에서 익명(Anonymous)을 켜 주세요.' : '온라인 서버에 연결하지 못했습니다. 지금은 혼자 연습하기만 할 수 있습니다.'; }
+  } else if (window.claude?.use) {
+    [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]).catch(() => [null, null]);
+    if (db) BACKEND = 'claude';
+  }
   ME.db = db; ME.user = user;
   if (user) {
     try { ME.uid = await user.id(); } catch (e) {}
@@ -1130,11 +1160,15 @@ async function initMultiplayer() {
   }
   ME.ready = true;
   if (db && ME.uid) {
-    db.collection('rooms').where('status', '==', 'lobby').orderBy('createdAt', 'desc').limit(20)
-      .onSnapshot(snap => { openRooms = snap.docs.map(d => ({ id: d.id, ...d.data() })); if (view === 'home') renderRoomList(); }, () => { openRooms = []; if (view === 'home') renderRoomList(); });
+    db.collection('rooms').where('status', '==', 'lobby').limit(40)
+      .onSnapshot(snap => { openRooms = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20); if (view === 'home') renderRoomList(); }, () => { openRooms = []; if (view === 'home') renderRoomList(); });
     const hash = (location.hash || '').replace('#', '').toUpperCase();
     const saved = ls.get('rummikub-room');
-    if (validCode(hash)) { $('joinCode').value = hash; joinRoom(hash); }
+    if (validCode(hash)) {
+      $('joinCode').value = hash;
+      if (ls.get('rummikub-nick')) joinRoom(hash);
+      else { renderHome(); flash(`${hash} 방에 초대받았습니다. 닉네임을 입력하고 입장을 누르세요.`, 'good'); setTimeout(() => $('nick').focus(), 50); }
+    }
     else if (validCode(saved) && view === 'home') enterRoom(saved);
   }
   if (view === 'home') renderHome();

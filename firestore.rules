@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 방: 로그인(익명)한 사람은 누구나 보고 참가할 수 있음.
+    // 방장(host)은 바꿀 수 없고, 방 삭제는 방장만.
+    match /rooms/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.host == request.auth.uid;
+      allow update: if request.auth != null
+                    && request.resource.data.host == resource.data.host;
+      allow delete: if request.auth != null
+                    && resource.data.host == request.auth.uid;
+
+      // 참가 기록: 자기 기록만 쓰고, 지우기는 본인 또는 방장.
+      match /seats/{uid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == uid;
+        allow delete: if request.auth != null
+                      && (request.auth.uid == uid
+                          || get(/databases/$(database)/documents/rooms/$(code)).data.host == request.auth.uid);
+      }
+    }
+  }
+}
