@@ -522,6 +522,13 @@ function moveTo(ids, target) {
   if (target.type === 'rack') ids = ids.filter(id => S.snap.hand.includes(id) && !hand.includes(id));
   if (target.type === 'meld') { const tm = S.table.find(m => m.id === target.mid); if (tm) ids = ids.filter(id => !tm.tiles.includes(id)); }
   if (!ids.length) { sel.clear(); render(); return; }
+  // Remember each source meld's laid-out order so a gap can be split later.
+  const before = new Map();
+  for (const id of ids) {
+    const m = meldOf(id);
+    if (m && !before.has(m.id)) { const an = analyze(m.tiles); before.set(m.id, an.valid ? an.order.slice() : m.tiles.slice()); }
+  }
+  const moving = new Set(ids);
   for (const id of ids) {
     const hi = hand.indexOf(id);
     if (hi >= 0) hand.splice(hi, 1);
@@ -532,7 +539,27 @@ function moveTo(ids, target) {
     const m = S.table.find(m => m.id === target.mid);
     if (m) m.tiles.push(...ids); else S.table.push({ id: S.mid++, tiles: ids });
   } else S.table.push({ id: S.mid++, tiles: ids });
+  // Auto-split: a meld that broke because tiles left its middle becomes separate melds at each gap.
+  let splits = 0;
+  for (const [mid, order] of before) {
+    const i = S.table.findIndex(m => m.id === mid);
+    if (i < 0) continue;
+    const m = S.table[i];
+    if (!m.tiles.length || analyze(m.tiles).valid) continue;
+    const left = new Set(m.tiles), chunks = []; let cur = [];
+    for (const id of order) {
+      if (moving.has(id)) { if (cur.length) chunks.push(cur); cur = []; }
+      else if (left.has(id)) cur.push(id);
+    }
+    if (cur.length) chunks.push(cur);
+    const extra = m.tiles.filter(id => !order.includes(id));
+    if (extra.length) chunks.push(extra);
+    if (chunks.length < 2) continue;
+    S.table.splice(i, 1, ...chunks.map((c, k) => ({ id: k === 0 ? m.id : S.mid++, tiles: c })));
+    splits++;
+  }
   S.table = S.table.filter(m => m.tiles.length);
+  if (splits) flash('끊긴 자리에서 조합을 나눴습니다.', 'good');
   drawnId = null;
   sel.clear(); fresh.clear();
   commit();
