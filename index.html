@@ -244,7 +244,7 @@ button{font:inherit;color:inherit}
           <div class="tile c-2"><span class="num">7</span><span class="dot"></span></div>
           <div class="tile c-3"><span class="num">7</span><span class="dot"></span></div>
         </div>
-        <p>방을 만들어 친구를 초대하거나, 코드로 친구 방에 들어가세요. 빈 자리는 컴퓨터로 채울 수 있습니다.</p>
+        <p id="heroSub">방을 만들어 친구를 초대하거나, 코드로 친구 방에 들어가세요. 빈 자리는 컴퓨터로 채울 수 있습니다.</p>
       </div>
 
       <div class="field" style="max-width:320px">
@@ -254,7 +254,7 @@ button{font:inherit;color:inherit}
 
       <div class="note warn" id="mpNote" hidden></div>
 
-      <div class="grid2">
+      <div class="grid2" id="onlineGrid">
         <div class="panel">
           <h3>새 방 만들기</h3>
           <p class="sub">방 코드와 초대 링크가 생깁니다. 사람은 최대 4명까지, 남는 자리는 컴퓨터로 채울 수 있습니다.</p>
@@ -274,13 +274,13 @@ button{font:inherit;color:inherit}
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" id="roomsPanel">
         <div class="hrow" style="justify-content:space-between"><h3>열린 방</h3><span class="sub" id="roomsCount"></span></div>
         <div class="rooms" id="roomList"><p class="sub">불러오는 중…</p></div>
       </div>
 
       <div class="panel">
-        <h3>혼자 연습하기</h3>
+        <h3 id="soloTitle">혼자 연습하기</h3>
         <p class="sub">이 기기에서 컴퓨터 1~3명과 바로 플레이합니다. 진행 상황은 이 브라우저에 저장됩니다.</p>
         <div class="hrow">
           <div class="opts" id="aiOpts" style="margin:0;flex:1">
@@ -959,7 +959,12 @@ function renderHome() {
   const ok = !!(ME.db && ME.uid);
   $('btnCreate').disabled = !ok || ME.canWrite === false;
   $('btnJoin').disabled = !ok;
-  if (!ok) { note.hidden = false; note.textContent = !ME.ready ? '온라인 연결 중…' : ME.fbError ? ME.fbError : BACKEND === 'none' && !window.claude ? '온라인 방 기능이 아직 설정되지 않았습니다 (config.js에 Firebase 설정 필요). 지금은 혼자 연습하기만 할 수 있습니다.' : '방 만들기와 초대는 claude.ai에 로그인해서 이 페이지를 열 때 쓸 수 있습니다. 지금은 혼자 연습하기만 할 수 있습니다.'; }
+  const offline = ME.ready && !ok;
+  $('heroSub').textContent = offline ? '컴퓨터 1~3명과 바로 플레이하세요.' : '방을 만들어 친구를 초대하거나, 코드로 친구 방에 들어가세요. 빈 자리는 컴퓨터로 채울 수 있습니다.';
+  $('onlineGrid').hidden = offline;
+  $('roomsPanel').hidden = offline;
+  $('soloTitle').textContent = offline ? '컴퓨터와 플레이' : '혼자 연습하기';
+  if (!ok) { note.hidden = false; note.textContent = !ME.ready ? '온라인 연결 중…' : ME.fbError ? ME.fbError : BACKEND === 'none' && !window.claude ? '친구와 함께하는 온라인 방은 아직 준비 중입니다. 지금은 컴퓨터와 혼자 플레이할 수 있어요.' : '친구와 함께하는 방은 claude.ai에 로그인해서 이 페이지를 열 때 쓸 수 있습니다. 지금은 컴퓨터와 혼자 플레이할 수 있어요.'; }
   else if (ME.canWrite === false) { note.hidden = false; note.textContent = '이 페이지에 대한 권한이 보기 전용이라 방을 만들거나 참가할 수 없습니다. 방은 관전만 할 수 있어요. 방장에게 참여자(또는 편집자) 권한을 요청하세요.'; }
   else note.hidden = true;
   renderRoomList();
