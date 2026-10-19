@@ -704,39 +704,79 @@ function aiFind(hand) {
   return { byTiles: toIds(bestT), byValue: toIds(bestV) };
 }
 
+// AI helpers. They mutate S.table and the given hand array in place.
+function aiSnap(hand) { return { table: S.table.map(m => ({ id: m.id, tiles: m.tiles.slice() })), hand: hand.slice(), mid: S.mid }; }
+function aiRestore(hand, sn) { S.table = sn.table.map(m => ({ id: m.id, tiles: m.tiles.slice() })); hand.splice(0, hand.length, ...sn.hand); S.mid = sn.mid; }
+function aiPlayMelds(hand, pick) {
+  if (!pick) return;
+  for (const m of pick.melds) {
+    if (!analyze(m).valid || !m.every(id => hand.includes(id))) continue;
+    S.table.push({ id: S.mid++, tiles: m.slice() });
+    m.forEach(id => hand.splice(hand.indexOf(id), 1));
+  }
+}
+function aiExtend(hand) {
+  let changed = true;
+  while (changed && hand.length) {
+    changed = false;
+    const order = hand.slice().sort((a, b) => (T[a].j ? 1 : 0) - (T[b].j ? 1 : 0));
+    for (const id of order) {
+      const m = S.table.find(m => analyze([...m.tiles, id]).valid);
+      if (m) { m.tiles.push(id); hand.splice(hand.indexOf(id), 1); changed = true; break; }
+    }
+  }
+}
+// Take jokers off the table: swap in the real tile from hand, or lift a joker the meld doesn't need.
+function aiHarvestJokers(hand) {
+  const freed = [];
+  for (const m of S.table) {
+    for (const j of m.tiles.filter(id => T[id].j)) {
+      const rest = m.tiles.filter(id => id !== j);
+      const swap = hand.find(id => !T[id].j && analyze([...rest, id]).valid);
+      if (swap !== undefined) { m.tiles = [...rest, swap]; hand.splice(hand.indexOf(swap), 1); hand.push(j); freed.push(j); continue; }
+      if (rest.length >= 3 && analyze(rest).valid) { m.tiles = rest; hand.push(j); freed.push(j); }
+    }
+  }
+  return freed;
+}
+
 function aiTurn() {
   if (!S || S.over) return;
   const p = S.turn, seat = S.seats[p];
   if (!seat || seat.t !== 'a') return;
   const hand = S.hands[p], name = seat.nick;
   const wasInit = S.init[p];
-  const r = aiFind(hand);
-  let pick = null;
-  if (wasInit) pick = r.byTiles;
-  else if (r.byTiles && r.byTiles.value >= 30) pick = r.byTiles;
-  else if (r.byValue && r.byValue.value >= 30) pick = r.byValue;
-  const played = [];
-  if (pick) for (const m of pick.melds) {
-    if (!analyze(m).valid) continue;
-    S.table.push({ id: S.mid++, tiles: m });
-    m.forEach(id => hand.splice(hand.indexOf(id), 1));
-    played.push(...m);
-  }
-  const firstNow = !wasInit && played.length > 0;
-  if (firstNow) S.init[p] = true;
-  if (wasInit) {
-    let changed = true;
-    while (changed && hand.length) {
-      changed = false;
-      const order = hand.slice().sort((a, b) => (T[a].j ? 1 : 0) - (T[b].j ? 1 : 0));
-      for (const id of order) {
-        const m = S.table.find(m => analyze([...m.tiles, id]).valid);
-        if (m) { m.tiles.push(id); hand.splice(hand.indexOf(id), 1); played.push(id); changed = true; break; }
-      }
+  const start = aiSnap(hand);
+  let usedJoker = 0;
+  if (!wasInit) {
+    const r = aiFind(hand);
+    let pick = null;
+    if (r.byTiles && r.byTiles.value >= 30) pick = r.byTiles;
+    else if (r.byValue && r.byValue.value >= 30) pick = r.byValue;
+    aiPlayMelds(hand, pick);
+  } else {
+    // Plan A: play from hand only.
+    aiPlayMelds(hand, aiFind(hand).byTiles); aiExtend(hand);
+    const planA = aiSnap(hand), nA = start.hand.length - hand.length;
+    // Plan B: first pull jokers off the table, then play. Every pulled joker must go back down this turn.
+    aiRestore(hand, start);
+    const freed = aiHarvestJokers(hand);
+    let keepB = false;
+    if (freed.length) {
+      aiPlayMelds(hand, aiFind(hand).byTiles); aiExtend(hand);
+      const nB = start.hand.length - hand.length;
+      keepB = !freed.some(j => hand.includes(j)) && S.table.every(m => analyze(m.tiles).valid) && nB > nA;
+      if (keepB) usedJoker = freed.length;
     }
+    if (!keepB) aiRestore(hand, planA);
   }
-  fresh = new Set(played);
-  if (played.length) { S.passes = 0; S.log = `${name}: ${played.length}장을 내려놓았습니다${firstNow ? ' (첫 등록)' : ''}.`; }
+  const before = new Set(start.table.flatMap(m => m.tiles));
+  const onTable = S.table.flatMap(m => m.tiles);
+  fresh = new Set(onTable.filter(id => !before.has(id) || (T[id].j && usedJoker)));
+  const n = start.hand.length - hand.length;
+  const firstNow = !wasInit && n > 0;
+  if (firstNow) S.init[p] = true;
+  if (n > 0) { S.passes = 0; S.log = `${name}: ${n}장을 내려놓았습니다${firstNow ? ' (첫 등록)' : ''}${usedJoker ? ` · 테이블의 조커 ${usedJoker}개를 가져다 썼습니다` : ''}.`; }
   else S.log = drawFor(p) != null ? `${name}: 낼 수 없어 한 장을 뽑았습니다.` : `${name}: 낼 수 없어 넘겼습니다.`;
   finishTurn();
 }
