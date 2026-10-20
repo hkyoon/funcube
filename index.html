@@ -6,7 +6,7 @@
 <script src="config.js"></script>
 </head>
 <body>
-<title>루미큐브</title>
+<title>FunCube</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,700..900&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
@@ -67,13 +67,7 @@ button{font:inherit;color:inherit}
 .newzone{display:flex;align-items:center;justify-content:center;min-width:calc(var(--tw)*3.6);height:calc(var(--tw)*1.36 + 15px);padding:0 14px;border-radius:10px;border:1.5px dashed rgba(236,231,220,.28);color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:border-color .15s, background .15s}
 .newzone.hl{border-color:var(--accent);color:var(--accent);background:rgba(242,184,75,.08)}
 .newzone:disabled{opacity:.45;cursor:default}
-.dock{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
-.dock .newzone{flex:1;min-width:0;height:auto;min-height:52px;flex-direction:column;gap:2px;padding:6px 12px;text-align:center}
-.dock .newzone b{font-size:14px;font-weight:700}
-.dock .newzone small{font-size:11.5px;opacity:.85}
-.dock .newzone small.ok{color:var(--ok);opacity:1}
-.dock .side{display:flex;flex-direction:column;gap:6px}
-.dock .side .btn{flex:1;padding:6px 12px}
+.rackbar .newzone{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;min-width:64px;height:auto;min-height:0;align-self:stretch;padding:0 10px;white-space:nowrap;font-size:13px;font-weight:700}
 .empty-hint{width:100%;color:var(--muted);font-size:13px;line-height:1.6;max-width:46ch}
 
 /* tiles */
@@ -107,12 +101,11 @@ button{font:inherit;color:inherit}
 
 /* rack */
 .rackwrap{padding-bottom:max(10px, env(safe-area-inset-bottom, 0px));padding-left:var(--gut-l);padding-right:var(--gut-r);padding-top:8px;background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 100%)}
-.rackbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:8px}
-.rackinfo{flex:1;min-width:140px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.rackinfo b{color:var(--ink)}
-.rackinfo .meter{display:inline-block;vertical-align:middle;width:70px;height:6px;border-radius:3px;background:rgba(255,255,255,.12);margin:0 6px;overflow:hidden}
-.rackinfo .meter span{display:block;height:100%;background:var(--accent);transition:width .2s}
-.rackinfo .meter.full span{background:var(--ok)}
+.rackbar{display:flex;flex-wrap:nowrap;align-items:stretch;gap:6px;margin-bottom:8px}
+.rackbar .btn{white-space:nowrap;padding:7px 11px}
+.rackbar .sm{display:none}
+@media (max-width:420px){.rackbar .lg{display:none}.rackbar .sm{display:inline}#btnReset{font-size:16px;line-height:1}.rackbar .newzone{min-width:0}#btnEnd{white-space:normal;line-height:1.15;max-width:5.6em;word-break:keep-all;padding-inline:8px}}
+@media (max-width:480px){.rackbar{gap:4px}.rackbar .btn{padding:6px 8px;font-size:12.5px}.rackbar .newzone{padding:0 6px;font-size:12.5px}}
 .btn{border:1px solid var(--line);background:rgba(0,0,0,.25);border-radius:9px;padding:8px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
 .btn:hover:not(:disabled){border-color:var(--muted)}
 .btn:disabled{opacity:.4;cursor:default}
@@ -215,11 +208,6 @@ button{font:inherit;color:inherit}
   .rackwrap{padding-top:4px}
   .rackbar{margin-bottom:4px}
   .rackbar .btn{padding:5px 10px}
-  .dock{margin-bottom:4px}
-  .dock .newzone{min-height:36px;padding:4px 10px}
-  .dock .newzone small{display:none}
-  .dock .side{flex-direction:row}
-  .dock .side .btn{padding:4px 10px}
   .rack{max-height:32vh;padding:6px 8px 8px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -230,7 +218,7 @@ button{font:inherit;color:inherit}
 
 <div class="app">
   <header class="top">
-    <div class="brand"><i style="color:var(--t-r)">7</i>루미큐브</div>
+    <div class="brand"><i style="color:var(--t-r)">7</i>FunCube</div>
     <div class="players" id="players"></div>
     <div class="pool" id="pool"></div>
     <div class="top-actions">
@@ -245,7 +233,7 @@ button{font:inherit;color:inherit}
   <section class="screen" id="scrHome" hidden>
     <div class="wrap">
       <div class="hero">
-        <h1>루미큐브</h1>
+        <h1>FunCube</h1>
         <div class="tiles" aria-hidden="true">
           <div class="tile c-1"><span class="num">7</span><span class="dot"></span></div>
           <div class="tile c-2"><span class="num">7</span><span class="dot"></span></div>
@@ -360,17 +348,12 @@ button{font:inherit;color:inherit}
   <main class="table" id="table"></main>
   <section class="rackwrap" id="rackwrap">
     <div class="rackbar">
-      <div class="rackinfo" id="rackinfo"></div>
-      <button class="btn" id="btnSortNum" type="button" title="같은 숫자끼리 정렬">777 정렬</button>
-      <button class="btn" id="btnSortCol" type="button" title="색깔별 연속 숫자 정렬">123 정렬</button>
-      <button class="btn" id="btnReset" type="button">되돌리기</button>
+      <button class="newzone" type="button" id="dockNew" data-drop="new" title="타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르면 새 조합이 됩니다"><span class="lg">＋ 새 조합</span><span class="sm">＋ 조합</span></button>
+      <button class="btn" type="button" id="btnClearSel" title="선택 해제">해제</button>
+      <button class="btn" id="btnSortNum" type="button" title="같은 숫자끼리 정렬" aria-label="같은 숫자끼리 정렬">777</button>
+      <button class="btn" id="btnSortCol" type="button" title="색깔별 연속 숫자 정렬" aria-label="색깔별 연속 숫자 정렬">123</button>
+      <button class="btn" id="btnReset" type="button" title="되돌리기" aria-label="되돌리기"><span class="lg">되돌리기</span><span class="sm">↺</span></button>
       <button class="btn primary" id="btnEnd" type="button">뽑기</button>
-    </div>
-    <div class="dock">
-      <button class="newzone" type="button" id="dockNew" data-drop="new"><b>＋ 새 조합</b><small id="dockHint">타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르세요</small></button>
-      <div class="side">
-        <button class="btn" type="button" id="btnClearSel">선택 해제</button>
-      </div>
     </div>
     <div class="rack" id="rack" data-drop="rack"></div>
   </section>
@@ -1391,17 +1374,6 @@ function render() {
   renderDock(ht);
 
   const played = ht ? playedIds() : [];
-  const invalid = S.table.filter(m => !analyze(m.tiles).valid).length;
-  let info;
-  if (S.over) info = '게임이 끝났습니다.';
-  else if (me < 0) info = '관전 중';
-  else if (!ht) info = `내 타일 <b>${myHand().length}</b>장${drawnId != null && myHand().includes(drawnId) ? ` · 방금 뽑은 타일 <b>${describe(drawnId)}</b>` : ''}`;
-  else if (!S.init[me]) {
-    const pts = initPoints(), w = Math.min(100, pts / 30 * 100);
-    info = `첫 등록 <span class="meter ${pts >= 30 ? 'full' : ''}"><span style="width:${w}%"></span></span><b>${pts}</b> / 30점`;
-  } else info = played.length ? `이번 턴 <b>${played.length}</b>장 냄` : `내 타일 <b>${myHand().length}</b>장`;
-  if (ht && invalid) info += ` · <span style="color:var(--danger)">무효 ${invalid}개</span>`;
-  $('rackinfo').innerHTML = info;
   const tableChanged = ht && keyOf(S.table.map(m => keyOf(m.tiles))) !== keyOf(S.snap.table.map(m => keyOf(m.tiles)));
   $('btnReset').disabled = !ht || (!played.length && !tableChanged);
   $('btnSortNum').disabled = $('btnSortCol').disabled = me < 0;
@@ -1437,14 +1409,12 @@ function render() {
 
 // ---------- dock: selection status + suggestions ----------
 function renderDock(ht) {
-  const nz = $('dockNew'), hint = $('dockHint');
+  const nz = $('dockNew');
   nz.disabled = !ht;
   nz.classList.toggle('hl', ht && sel.size > 0);
-  $('btnClearSel').disabled = !ht || !sel.size;
-  hint.className = '';
-  if (!ht) { hint.textContent = S.over ? '게임이 끝났습니다' : mySeat() < 0 ? '관전 중' : '내 차례가 아닙니다'; return; }
-  if (!sel.size) { hint.textContent = '타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르세요'; return; }
-  hint.textContent = `${sel.size}장 선택 · 여기를 누르면 새 조합으로 내려놓고, 테이블의 조합을 누르면 거기에 붙습니다`;
+  const c = ht && sel.size ? ` (${sel.size})` : '';
+  nz.innerHTML = `<span class="lg">＋ 새 조합${c}</span><span class="sm">＋ 조합${c}</span>`;
+  $('btnClearSel').hidden = !ht || !sel.size;
 }
 
 // ---------- input: drag + tap ----------
@@ -1552,7 +1522,7 @@ $('lBotPlus').onclick = () => setBots((mode.room && mode.room.bots || 0) + 1);
 $('btnStart').onclick = startRoomGame;
 $('btnLeaveLobby').onclick = () => isHost() ? closeRoom() : leaveRoom();
 $('btnCopyLink').onclick = () => copyText(inviteBase() + '#' + mode.code, $('inviteLink'));
-$('btnCopyMsg').onclick = () => copyText(`루미큐브 같이 해요! 방 코드: ${mode.code}\n링크로 들어오면 바로 입장돼요: ${inviteBase()}#${mode.code}`, $('inviteLink'));
+$('btnCopyMsg').onclick = () => copyText(`FunCube 같이 해요! 방 코드: ${mode.code}\n링크로 들어오면 바로 입장돼요: ${inviteBase()}#${mode.code}`, $('inviteLink'));
 $('endClose').onclick = () => { overSeenV = S ? S.v : -1; render(); };
 $('endAgain').onclick = () => { $('ovEnd').hidden = true; rematch(); };
 $('endLobby').onclick = () => { $('ovEnd').hidden = true; backToLobby(); };
