@@ -19,5 +19,5 @@ window.FIREBASE_CONFIG = {
 window.SPONSOR = {
   name: "솜뭉치카페",
   image: "sponsor.svg",
-  text: ""
+  text: "아아 샷추가 무료!"
 };

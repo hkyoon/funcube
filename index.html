@@ -1398,7 +1398,7 @@ function render() {
     $('endTitle').textContent = w === me ? '이겼습니다!' : `${S.seats[w].nick} 님 승리`;
     const sp = sponsor(), es = $('endSponsor');
     es.hidden = !sp;
-    if (sp) es.innerHTML = `<img src="${esc(sp.image)}" alt=""><span>이번 판 조커 제공 <b>${esc(sp.name)}</b>${sp.text ? ' · ' + esc(sp.text) : ''}</span>`;
+    if (sp) es.innerHTML = `<img src="${esc(sp.image)}" alt=""><span>조커 제공 · <b>${esc(sp.name)}</b>${sp.text ? ': ' + esc(sp.text) : ''}</span>`;
     $('endSub').textContent = S.over.empty ? '손의 타일을 모두 내려놓았습니다. 남은 타일 점수(조커 30점)가 낮을수록 좋습니다.' : '남은 타일이 없어 게임이 끝났습니다. 남은 타일 점수가 가장 낮은 사람이 이깁니다.';
     const idx = S.seats.map((_, i) => i).sort((a, b) => S.over.pen[a] - S.over.pen[b]);
     $('endRank').innerHTML = idx.map(i => `<li class="${i === w ? 'win' : ''}"><span>${esc(S.seats[i].nick)} · ${S.hands[i].length}장</span><span>${S.over.pen[i] ? '−' + S.over.pen[i] : '0'}점</span></li>`).join('');

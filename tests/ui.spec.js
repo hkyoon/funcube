@@ -159,12 +159,12 @@ test('규칙 창이 열리고 확인으로 닫힌다', async ({ page }) => {
 });
 
 test('스폰서가 설정되면 조커 한 장에 로고가, 결과 창에 제공 문구가 나온다', async ({ page }) => {
-  await openGame(page, { config: 'window.FIREBASE_CONFIG = null; window.SPONSOR = { name: "테스트카페", image: "sponsor.svg", text: "" };' });
+  await openGame(page, { config: 'window.FIREBASE_CONFIG = null; window.SPONSOR = { name: "테스트카페", image: "sponsor.svg", text: "아메리카노 1+1" };' });
   await loadState(page, (st, id) => { st.table = []; st.hands[0] = [id(0, 9), id(0, 10), id(0, 11), 105]; });
   await expect(tile(page, '#rack', J2).locator('img.sponsor-img')).toBeVisible();
   for (const n of [9, 10, 11]) await tile(page, '#rack', id(0, n)).click();
   await tile(page, '#rack', J2).click();
   await page.click('#dockNew');
   await page.click('#btnEnd');
-  await expect(page.locator('#endSponsor')).toContainText('테스트카페');
+  await expect(page.locator('#endSponsor')).toContainText('테스트카페: 아메리카노 1+1');
 });
