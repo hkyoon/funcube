@@ -17,8 +17,24 @@
 
 `config.js`가 비어 있으면 혼자 연습하기만 동작합니다.
 
+## 자동 테스트
+
+게임을 고칠 때마다 아래 명령으로 전체 테스트를 돌립니다. 깃허브에 올리면 Actions에서도 자동으로 돕니다.
+
+```
+npm install
+npx playwright install chromium   # 처음 한 번
+npm test
+```
+
+- `tests/logic.spec.js` — 조합 판정, 자동 나누기, 재배치 계산기, 난이도별 컴퓨터 대결(타일 106장·유효성)
+- `tests/ui.spec.js` — 새 조합 클릭·드래그, 되돌리기, 뽑기, 되돌리고 뽑기, 무효·30점 차단, 다시 하기, 스폰서 조커
+- `tests/layout.spec.js` — 폰·태블릿·모니터 크기별 가로 스크롤, 버튼 한 줄, 정사각형 타일
+- `tests/room.spec.js` — 가짜 서버로 방 만들기 → 초대 링크 입장 → 같이 게임
+
 ## 파일
 
 - `index.html` — 게임 전체
 - `config.js` — Firebase 설정
 - `firestore.rules` — Firestore 보안 규칙
+- `tests/` — 자동 테스트

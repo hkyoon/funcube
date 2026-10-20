@@ -1,0 +1,11 @@
+{
+  "name": "funcube",
+  "private": true,
+  "description": "FunCube 웹 게임 자동 테스트",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0"
+  }
+}

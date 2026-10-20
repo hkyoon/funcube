@@ -394,6 +394,7 @@ button{font:inherit;color:inherit}
 <script>
 (() => {
 'use strict';
+const TEST = typeof window !== 'undefined' && !!window.__FUNCUBE_TEST__;
 const ARTIFACT_URL = 'https://claude.ai/artifact/TqSzkjLJn9xN9Cp7Ak8kkP';
 let BACKEND = 'none'; // 'claude' | 'firebase' | 'none'
 const inviteBase = () => BACKEND === 'firebase' ? location.href.split('#')[0] : ARTIFACT_URL;
@@ -470,6 +471,8 @@ function pickJokers() { const a = shuffle(JOKERS.map((_, i) => i)); return { 104
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const tileVal = id => T[id].j ? 30 : T[id].n;
 const keyOf = ids => ids.slice().sort((a, b) => a - b).join(',');
+// A whole table layout, independent of meld order (so splitting 1-6 into 1-5 + 6 counts as a change).
+const tableKey = table => table.map(m => keyOf(m.tiles)).sort().join('|');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ls = {
@@ -585,7 +588,7 @@ function scheduleAI() {
   if (isRoom() && !isHost()) return;
   if (aiPendingV === S.v) return;
   const v = aiPendingV = S.v;
-  setTimeout(() => { if (S && S.v === v && !S.over) aiTurn(); }, 850);
+  setTimeout(() => { if (S && S.v === v && !S.over) aiTurn(); }, TEST ? 40 : 850);
 }
 
 function finishTurn() {
@@ -692,7 +695,7 @@ function endTurn() {
   const me = mySeat(), nick = S.seats[me].nick;
   const played = playedIds();
   if (!played.length) {
-    const reworked = keyOf(S.table.map(m => keyOf(m.tiles))) !== keyOf(S.snap.table.map(m => keyOf(m.tiles)));
+    const reworked = tableKey(S.table) !== tableKey(S.snap.table);
     S.table = S.snap.table.map(m => ({ id: m.id, tiles: m.tiles.slice() }));
     S.hands[me] = S.snap.hand.slice();
     const got = drawFor(me);
@@ -1025,7 +1028,7 @@ function aiTurn() {
   const n = start.hand.length - hand.length;
   const firstNow = !wasInit && n > 0;
   if (firstNow) S.init[p] = true;
-  const tableChanged = keyOf(S.table.map(m => keyOf(m.tiles))) !== keyOf(start.table.map(m => keyOf(m.tiles)));
+  const tableChanged = tableKey(S.table) !== tableKey(start.table);
   if (n > 0) { S.passes = 0; S.log = `${name}: ${n}장을 내려놓았습니다${firstNow ? ' (첫 등록)' : ''}${reworked && tableChanged ? ' · 테이블을 다시 짰습니다' : ''}.`; }
   else { aiRestore(hand, start); S.log = drawFor(p) != null ? `${name}: 낼 수 없어 한 장을 뽑았습니다.` : `${name}: 낼 수 없어 넘겼습니다.`; }
   finishTurn();
@@ -1374,7 +1377,7 @@ function render() {
   renderDock(ht);
 
   const played = ht ? playedIds() : [];
-  const tableChanged = ht && keyOf(S.table.map(m => keyOf(m.tiles))) !== keyOf(S.snap.table.map(m => keyOf(m.tiles)));
+  const tableChanged = ht && tableKey(S.table) !== tableKey(S.snap.table);
   $('btnReset').disabled = !ht || (!played.length && !tableChanged);
   $('btnSortNum').disabled = $('btnSortCol').disabled = me < 0;
   const end = $('btnEnd');
@@ -1584,6 +1587,13 @@ function start(data) {
   else setView('home');
   initMultiplayer();
 }
+// Test hook: only present when a test sets window.__FUNCUBE_TEST__ before the page loads.
+if (TEST) window.__fc = {
+  T, analyze, aiFind, aiTurn, solveArrangement, startLocal, moveTo, endTurn, rematch,
+  get S() { return S; }, get view() { return view; }, get mode() { return mode; },
+  load(st) { leaveRoomSubs(); mode = { kind: 'local' }; S = st; sel.clear(); fresh.clear(); drawnId = null; overSeenV = -1; setView('game'); render(); scheduleAI(); },
+  setSeatsAI(diffs) { S.seats.forEach((x, i) => { x.t = 'a'; x.diff = diffs[i % diffs.length]; }); },
+};
 window.claude?.hot?.snapshot?.(() => ({ state: isRoom() ? null : (view === 'game' ? S : null), local: !isRoom() }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
