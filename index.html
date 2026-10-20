@@ -1471,9 +1471,9 @@ document.addEventListener('click', e => {
   const j = e.target.closest('[data-join]');
   if (j) { joinRoom(j.dataset.join); return; }
   if (!humanTurn() || !sel.size) return;
-  if (e.target.closest('.tile') || e.target.closest('.rackbar') || e.target.closest('.top')) return;
+  if (e.target.closest('.tile')) return;
   const t = e.target.closest('[data-drop]');
-  if (t) moveTo([...sel], targetOf(t));
+  if (t && !t.disabled) moveTo([...sel], targetOf(t));
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
