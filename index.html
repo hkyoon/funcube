@@ -19,7 +19,7 @@
   --ivory:#f8f3e6; --ivory-2:#ece2c9; --ivory-edge:#cbbf9f;
   --wood:#6e4626; --wood-2:#4a2d17; --wood-lip:#8a5a33;
   --accent:#f2b84b; --danger:#ff7a6b; --ok:#7fd3a4;
-  --t-k:#1c1c1f; --t-r:#c62a2f; --t-b:#1d5bbd; --t-o:#d97f00;
+  --t-k:#1c1c1f; --t-r:#c62a2f; --t-b:#2a9fd8; --t-o:#e8a300;
   --f-num:"Archivo", "Arial Narrow", Arial, sans-serif;
   --f-brand:"Old Standard TT", "Times New Roman", Georgia, serif;
   --f-ui:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
@@ -380,8 +380,8 @@ button{font:inherit;color:inherit}
     <h2 id="rulesTitle">규칙</h2>
     <ul>
       <li><b>목표</b> 손에 든 타일을 먼저 모두 내려놓으면 이깁니다.</li>
-      <li><b>그룹</b> 같은 숫자, 서로 다른 색 3~4장. 예: 빨강7 파랑7 검정7</li>
-      <li><b>런</b> 같은 색, 연속된 숫자 3장 이상. 예: 주황4 5 6 7</li>
+      <li><b>그룹</b> 같은 숫자, 서로 다른 색 3~4장. 예: 빨강7 하늘7 검정7</li>
+      <li><b>런</b> 같은 색, 연속된 숫자 3장 이상. 예: 노랑4 5 6 7</li>
       <li><b>조커</b> 어떤 타일이든 대신합니다. 손에 남으면 30점 감점.</li>
       <li><b>첫 등록</b> 처음 낼 때는 내 타일만으로 합계 30점 이상을 내야 하고, 테이블의 조합은 건드릴 수 없습니다.</li>
       <li><b>재배치</b> 첫 등록 뒤에는 테이블 조합을 나누고 합쳐 새로 짤 수 있습니다. 턴이 끝날 때 모든 조합이 유효해야 합니다.</li>
@@ -404,7 +404,7 @@ const T = [];
 for (let c = 0; c < 4; c++) for (let n = 1; n <= 13; n++) for (let k = 0; k < 2; k++) T.push({ id: T.length, c, n, j: false });
 T.push({ id: T.length, c: -1, n: 0, j: true });
 T.push({ id: T.length, c: -1, n: 0, j: true });
-const COLOR_NAME = ['검정', '빨강', '파랑', '주황'];
+const COLOR_NAME = ['검정', '빨강', '하늘', '노랑'];
 // Joker faces: ten original cats and dogs, drawn on a 40x40 grid.
 const INK = '#1c1c1f';
 function catFace(o) {
