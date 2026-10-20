@@ -168,3 +168,57 @@ test('스폰서가 설정되면 조커 한 장에 로고가, 결과 창에 제�
   await page.click('#btnEnd');
   await expect(page.locator('#endSponsor')).toContainText('테스트카페: 아메리카노 1+1');
 });
+
+test.describe('테이블에 원래 있던 타일은 내 패로 가져올 수 없다', () => {
+  async function setup(page) {
+    await openGame(page);
+    await loadState(page, (st, id) => {
+      st.init = [true, true];
+      st.table = [{ id: 900, tiles: [1, 2, 3, 4, 5, 6].map(n => id(1, n)) }, { id: 901, tiles: [id(0, 9), id(1, 9), id(2, 9)] }];
+    });
+  }
+  async function drag(page, from, to) {
+    const s = await from.boundingBox(), d = await to.boundingBox();
+    await page.mouse.move(s.x + s.width / 2, s.y + s.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(s.x + 20, s.y + 40, { steps: 4 });
+    await page.mouse.move(d.x + d.width / 2, d.y + d.height / 2, { steps: 6 });
+    await page.mouse.up();
+  }
+
+  test('눌러 고른 뒤 내 패를 눌러도', async ({ page }) => {
+    await setup(page);
+    await tile(page, '#table', id(1, 6)).click();
+    await page.click('#rack', { position: { x: 4, y: 4 } });
+    expect(await rackCount(page)).toBe(14);
+    await expect(page.locator('#msg')).toContainText('가져올 수 없습니다');
+  });
+
+  test('내 패로 끌어와도', async ({ page }) => {
+    await setup(page);
+    await drag(page, tile(page, '#table', id(1, 6)), page.locator('#rack'));
+    expect(await rackCount(page)).toBe(14);
+  });
+
+  test('조합을 무효로 깨뜨린 뒤 내 패 위에 놓아도', async ({ page }) => {
+    await setup(page);
+    await tile(page, '#table', id(0, 9)).click();
+    await page.click('#dockNew');
+    await expect(page.locator('.meld.invalid')).toHaveCount(2);
+    await drag(page, tile(page, '#table', id(0, 9)), page.locator('#rack .tile').nth(2));
+    expect(await rackCount(page)).toBe(14);
+    const tableTiles = await page.evaluate(() => window.__fc.S.table.flatMap(m => m.tiles).length);
+    expect(tableTiles).toBe(9);
+  });
+
+  test('어떤 경로로든 들어왔다면 턴 끝낼 때 되돌린다', async ({ page }) => {
+    await setup(page);
+    await page.evaluate(() => { const S = window.__fc.S; const t = S.table[0].tiles.pop(); S.hands[0].push(t); });
+    await page.click('#btnEnd');
+    await expect(page.locator('#msg')).toContainText('이번 턴을 되돌렸습니다');
+    const S = await page.evaluate(() => window.__fc.S);
+    expect(S.hands[0].length).toBe(14);
+    expect(S.table[0].tiles.length).toBe(6);
+    expect(S.turn).toBe(0);
+  });
+});

@@ -626,7 +626,11 @@ function initPoints() {
 function moveTo(ids, target) {
   if (!humanTurn()) return;
   const hand = myHand();
-  if (target.type === 'rack') ids = ids.filter(id => S.snap.hand.includes(id) && !hand.includes(id));
+  if (target.type === 'rack') {
+    const want = ids.length;
+    ids = ids.filter(id => S.snap.hand.includes(id) && !hand.includes(id));
+    if (ids.length < want) flash('테이블에 원래 있던 타일은 내 패로 가져올 수 없습니다.');
+  }
   if (target.type === 'meld') { const tm = S.table.find(m => m.id === target.mid); if (tm) ids = ids.filter(id => !tm.tiles.includes(id)); }
   if (!ids.length) { sel.clear(); render(); return; }
   // Remember each source meld's laid-out order so a gap can be split later.
@@ -693,6 +697,14 @@ function drawFor(p) {
 function endTurn() {
   if (!humanTurn()) return;
   const me = mySeat(), nick = S.seats[me].nick;
+  // Safety net: my hand may only ever shrink during a turn; never keep a tile that came from the table.
+  const stolen = S.hands[me].filter(id => !S.snap.hand.includes(id));
+  if (stolen.length) {
+    S.table = S.snap.table.map(m => ({ id: m.id, tiles: m.tiles.slice() }));
+    S.hands[me] = S.snap.hand.slice();
+    sel.clear(); commit();
+    return flash('테이블에 원래 있던 타일이 내 패에 들어와 있어서 이번 턴을 되돌렸습니다.');
+  }
   const played = playedIds();
   if (!played.length) {
     const reworked = tableKey(S.table) !== tableKey(S.snap.table);
