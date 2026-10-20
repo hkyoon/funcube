@@ -79,7 +79,7 @@ button{font:inherit;color:inherit}
   color:var(--tc);font-family:var(--f-num);font-weight:800;font-stretch:88%;font-size:calc(var(--tw)*.58);line-height:1;
   user-select:none;-webkit-user-select:none;touch-action:none;cursor:grab;transition:transform .12s, box-shadow .12s}
 .tile .num{font-variant-numeric:tabular-nums;margin-top:calc(var(--tw)*.05)}
-.tile .dot{width:calc(var(--tw)*.17);height:calc(var(--tw)*.17);border-radius:50%;border:1.5px solid currentColor;opacity:.55}
+.tile .sym{width:calc(var(--tw)*.22);height:calc(var(--tw)*.22);fill:currentColor;flex:none}
 .c-0{--tc:var(--t-k)} .c-1{--tc:var(--t-r)} .c-2{--tc:var(--t-b)} .c-3{--tc:var(--t-o)}
 .tile.joker svg{width:86%;height:auto;margin-top:8%}
 .tile.joker .sponsor-img{width:78%;height:auto;aspect-ratio:1;object-fit:contain;margin-top:10%;border-radius:4px;pointer-events:none}
@@ -236,9 +236,9 @@ button{font:inherit;color:inherit}
       <div class="hero">
         <h1>FunCube</h1>
         <div class="tiles" aria-hidden="true">
-          <div class="tile c-1"><span class="num">7</span><span class="dot"></span></div>
-          <div class="tile c-2"><span class="num">7</span><span class="dot"></span></div>
-          <div class="tile c-3"><span class="num">7</span><span class="dot"></span></div>
+          <div class="tile c-1"><span class="num">7</span><svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 9.2 L1.2 5.3 A2.25 2.25 0 0 1 5 2.5 A2.25 2.25 0 0 1 8.8 5.3 Z"/></svg></div>
+          <div class="tile c-2"><span class="num">7</span><svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .5 L9.1 5 L5 9.5 L.9 5 Z"/></svg></div>
+          <div class="tile c-3"><span class="num">7</span><svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .4 L6.35 3.55 L9.7 3.8 L7.15 6.05 L7.95 9.4 L5 7.6 L2.05 9.4 L2.85 6.05 L.3 3.8 L3.65 3.55 Z"/></svg></div>
         </div>
         <p id="heroSub">방을 만들어 친구를 초대하거나, 코드로 친구 방에 들어가세요. 빈 자리는 컴퓨터로 채울 수 있습니다.</p>
       </div>
@@ -405,6 +405,9 @@ for (let c = 0; c < 4; c++) for (let n = 1; n <= 13; n++) for (let k = 0; k < 2;
 T.push({ id: T.length, c: -1, n: 0, j: true });
 T.push({ id: T.length, c: -1, n: 0, j: true });
 const COLOR_NAME = ['검정', '빨강', '하늘', '노랑'];
+// Each colour also has its own shape (circle, heart, diamond, star) so colours can be told apart without relying on hue.
+const SYM_PATHS = [`<circle cx="5" cy="5" r="3.9"/>`, `<path d="M5 9.2 L1.2 5.3 A2.25 2.25 0 0 1 5 2.5 A2.25 2.25 0 0 1 8.8 5.3 Z"/>`, `<path d="M5 .5 L9.1 5 L5 9.5 L.9 5 Z"/>`, `<path d="M5 .4 L6.35 3.55 L9.7 3.8 L7.15 6.05 L7.95 9.4 L5 7.6 L2.05 9.4 L2.85 6.05 L.3 3.8 L3.65 3.55 Z"/>`];
+const symSVG = c => `<svg class="sym" viewBox="0 0 10 10" aria-hidden="true">${SYM_PATHS[c]}</svg>`;
 // Joker faces: ten original cats and dogs, drawn on a 40x40 grid.
 const INK = '#1c1c1f';
 function catFace(o) {
@@ -1239,9 +1242,9 @@ function tileHTML(id, cls = '', jv) {
   if (sel.has(id)) c.push('sel');
   if (fresh.has(id)) c.push('fresh');
   if (t.j) { const jk = jokerOf(id); return `<div class="tile joker ${c.join(' ')}" data-id="${id}" title="조커 · ${jk.name}" aria-label="조커 ${jk.name}${jv ? ' (' + jv + ')' : ''}"><span class="jmark">J</span>${jk.svg}${jv ? `<span class="jv">${jv}</span>` : ''}</div>`; }
-  return `<div class="tile c-${t.c} ${c.join(' ')}" data-id="${id}" aria-label="${COLOR_NAME[t.c]} ${t.n}"><span class="num">${t.n}</span><span class="dot"></span></div>`;
+  return `<div class="tile c-${t.c} ${c.join(' ')}" data-id="${id}" aria-label="${COLOR_NAME[t.c]} ${t.n}"><span class="num">${t.n}</span>${symSVG(t.c)}</div>`;
 }
-const letterTile = (ch, i) => `<div class="tile c-${i % 4}"><span class="num">${esc(ch)}</span><span class="dot"></span></div>`;
+const letterTile = (ch, i) => `<div class="tile c-${i % 4}"><span class="num">${esc(ch)}</span>${symSVG(i % 4)}</div>`;
 
 function setView(v) {
   view = v;
