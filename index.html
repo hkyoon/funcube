@@ -9,7 +9,7 @@
 <title>FunCube</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,700..900&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,700..900&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Old+Standard+TT:wght@400;700&display=swap">
 <style>
 /* Layout: one-screen game — status bar on top, felt table that scrolls, walnut rack pinned at the bottom. Single committed look (game table), not theme-switched. */
 :root{
@@ -21,6 +21,7 @@
   --accent:#f2b84b; --danger:#ff7a6b; --ok:#7fd3a4;
   --t-k:#1c1c1f; --t-r:#c62a2f; --t-b:#1d5bbd; --t-o:#d97f00;
   --f-num:"Archivo", "Arial Narrow", Arial, sans-serif;
+  --f-brand:"Old Standard TT", "Times New Roman", Georgia, serif;
   --f-ui:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --tw:clamp(30px, min(5.6vw, 6.4vh), 64px);
   --gut-l:max(16px, env(safe-area-inset-left, 0px));
@@ -36,8 +37,8 @@ button{font:inherit;color:inherit}
 
 /* top bar */
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-block:10px;padding-left:var(--gut-l);padding-right:var(--gut-r);border-bottom:1px solid var(--line);background:rgba(0,0,0,.18)}
-.brand{font-family:var(--f-num);font-weight:900;font-stretch:80%;font-size:20px;letter-spacing:.02em;display:flex;align-items:center;gap:6px}
-.brand i{display:inline-grid;place-items:center;width:18px;height:24px;border-radius:3px;background:var(--ivory);font-style:normal;font-size:14px;box-shadow:0 -2px 0 var(--ivory-edge) inset}
+.brand{font-family:var(--f-brand);font-weight:700;font-size:21px;letter-spacing:.01em;display:flex;align-items:center;gap:6px}
+.brand i{font-family:var(--f-num);font-weight:900;display:inline-grid;place-items:center;width:18px;height:24px;border-radius:3px;background:var(--ivory);font-style:normal;font-size:14px;box-shadow:0 -2px 0 var(--ivory-edge) inset}
 .players{display:flex;flex-wrap:nowrap;gap:8px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
 .players::-webkit-scrollbar{display:none}
 .pchip{flex:none}
@@ -139,7 +140,7 @@ button{font:inherit;color:inherit}
 .screen{flex:1;min-height:0;overflow:auto;padding-block:20px 32px;padding-left:var(--gut-l);padding-right:var(--gut-r)}
 .wrap{max-width:760px;margin:0 auto;display:grid;gap:18px}
 .hero{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
-.hero h1{margin:0;font-family:var(--f-num);font-weight:900;font-stretch:78%;font-size:clamp(40px,9vw,64px);line-height:.9;letter-spacing:.01em}
+.hero h1{margin:0;font-family:var(--f-brand);font-weight:700;font-size:clamp(40px,9vw,64px);line-height:.95;letter-spacing:-.005em}
 .hero .tiles{display:flex;gap:4px}
 .hero .tile{--tw:34px;cursor:default}
 .hero p{margin:0;color:var(--muted);flex-basis:100%;max-width:52ch;line-height:1.6}
