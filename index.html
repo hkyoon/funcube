@@ -23,7 +23,7 @@
   --f-num:"Archivo", "Arial Narrow", Arial, sans-serif;
   --f-brand:"Old Standard TT", "Times New Roman", Georgia, serif;
   --f-ui:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --tw:clamp(30px, min(5.6vw, 6.4vh), 64px);
+  --tw:clamp(32px, min(5.8vw, 7vh), 64px);
   --gut-l:max(16px, env(safe-area-inset-left, 0px));
   --gut-r:max(16px, env(safe-area-inset-right, 0px));
 }
@@ -64,30 +64,29 @@ button{font:inherit;color:inherit}
 .meld.invalid{border-color:var(--danger);background:rgba(255,122,107,.08)}
 .meld.invalid::after{content:"무효";position:absolute;top:-9px;right:8px;font-size:10px;font-weight:700;padding:0 5px;border-radius:4px;background:var(--danger);color:var(--felt-deep)}
 .meld.over,.newzone.over{border-color:var(--accent);background:rgba(242,184,75,.12)}
-.slot{width:calc(var(--tw)*.8);height:calc(var(--tw)*1.36);border-radius:6px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-size:20px;cursor:pointer;flex:none;margin-left:4px}
-.newzone{display:flex;align-items:center;justify-content:center;min-width:calc(var(--tw)*3.6);height:calc(var(--tw)*1.36 + 15px);padding:0 14px;border-radius:10px;border:1.5px dashed rgba(236,231,220,.28);color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:border-color .15s, background .15s}
+.slot{width:calc(var(--tw)*.7);height:calc(var(--tw));border-radius:6px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-size:20px;cursor:pointer;flex:none;margin-left:4px}
+.newzone{display:flex;align-items:center;justify-content:center;min-width:calc(var(--tw)*3.6);height:calc(var(--tw) + 15px);padding:0 14px;border-radius:10px;border:1.5px dashed rgba(236,231,220,.28);color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:border-color .15s, background .15s}
 .newzone.hl{border-color:var(--accent);color:var(--accent);background:rgba(242,184,75,.08)}
 .newzone:disabled{opacity:.45;cursor:default}
 .rackbar .newzone{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;min-width:64px;height:auto;min-height:0;align-self:stretch;padding:0 10px;white-space:nowrap;font-size:13px;font-weight:700}
 .empty-hint{width:100%;color:var(--muted);font-size:13px;line-height:1.6;max-width:46ch}
 
 /* tiles */
-.tile{--tc:var(--t-k);width:var(--tw);height:calc(var(--tw)*1.36);flex:none;position:relative;border-radius:6px;
+.tile{--tc:var(--t-k);width:var(--tw);height:var(--tw);flex:none;position:relative;border-radius:calc(var(--tw)*.16);
   background:linear-gradient(180deg,var(--ivory) 0%,var(--ivory-2) 100%);
   box-shadow:inset 0 1px 0 #fff, inset 0 -3px 0 var(--ivory-edge), 0 2px 3px rgba(0,0,0,.35);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--tw)*.06);
-  color:var(--tc);font-family:var(--f-num);font-weight:800;font-stretch:88%;font-size:calc(var(--tw)*.58);line-height:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--tc);font-family:var(--f-num);font-weight:800;font-stretch:88%;font-size:calc(var(--tw)*.56);line-height:1;
   user-select:none;-webkit-user-select:none;touch-action:none;cursor:grab;transition:transform .12s, box-shadow .12s}
-.tile .num{font-variant-numeric:tabular-nums;margin-top:calc(var(--tw)*.05)}
-.tile .sym{width:calc(var(--tw)*.22);height:calc(var(--tw)*.22);fill:currentColor;flex:none}
+.tile .num{font-variant-numeric:tabular-nums;margin-top:-4%}
 .c-0{--tc:var(--t-k)} .c-1{--tc:var(--t-r)} .c-2{--tc:var(--t-b)} .c-3{--tc:var(--t-o)}
-.tile.joker svg{width:86%;height:auto;margin-top:8%}
-.tile.joker .sponsor-img{width:78%;height:auto;aspect-ratio:1;object-fit:contain;margin-top:10%;border-radius:4px;pointer-events:none}
+.tile.joker svg{width:80%;height:auto;margin-top:4%}
+.tile.joker .sponsor-img{width:70%;height:auto;aspect-ratio:1;object-fit:contain;margin-top:4%;border-radius:4px;pointer-events:none}
 .sponsor-line{display:flex;align-items:center;gap:10px;margin:12px 0 0;padding:8px 10px;border-radius:9px;background:rgba(0,0,0,.2);font-size:12.5px;color:var(--muted)}
 .sponsor-line img{width:32px;height:32px;object-fit:contain;border-radius:4px;background:var(--ivory)}
 .sponsor-line b{color:var(--ink)}
-.tile .jmark{position:absolute;left:3px;top:2px;font-size:calc(var(--tw)*.22);color:var(--t-r);font-weight:900;line-height:1}
-.tile .jv{position:absolute;right:3px;bottom:3px;font-size:calc(var(--tw)*.24);color:#7b715c;font-weight:700}
+.tile .jmark{position:absolute;left:3px;top:2px;font-size:calc(var(--tw)*.2);color:var(--t-r);font-weight:900;line-height:1}
+.tile .jv{position:absolute;right:3px;bottom:2px;font-size:calc(var(--tw)*.22);line-height:1;color:#7b715c;font-weight:700}
 .tile.sel{transform:translateY(-6px);box-shadow:inset 0 1px 0 #fff, inset 0 -3px 0 var(--ivory-edge), 0 0 0 2.5px var(--accent), 0 6px 10px rgba(0,0,0,.4)}
 .tile.mine::before{content:"";position:absolute;left:22%;right:22%;top:3px;height:3px;border-radius:2px;background:var(--accent)}
 .tile.fresh{animation:land .5s ease-out}
@@ -112,7 +111,7 @@ button{font:inherit;color:inherit}
 .btn:disabled{opacity:.4;cursor:default}
 .btn.primary{background:var(--accent);color:#2a1c05;border-color:var(--accent);font-weight:700;padding:8px 16px}
 .btn:focus-visible,.tbtn:focus-visible,.slot:focus-visible,.newzone:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.rack{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px 3px;min-height:calc(var(--tw)*1.36 + 22px);max-height:38vh;overflow-y:auto;padding:10px 10px 12px;border-radius:10px;
+.rack{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px 3px;min-height:calc(var(--tw) + 22px);max-height:38vh;overflow-y:auto;padding:10px 10px 12px;border-radius:10px;
   background:linear-gradient(180deg,var(--wood-lip) 0,var(--wood) 6px,var(--wood-2) 100%);
   box-shadow:inset 0 2px 0 rgba(255,255,255,.12), inset 0 -4px 0 rgba(0,0,0,.35), 0 4px 10px rgba(0,0,0,.35);border:1.5px solid transparent}
 .rack.over{border-color:var(--accent)}
@@ -236,9 +235,9 @@ button{font:inherit;color:inherit}
       <div class="hero">
         <h1>FunCube</h1>
         <div class="tiles" aria-hidden="true">
-          <div class="tile c-1"><span class="num">7</span><svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 9.2 L1.2 5.3 A2.25 2.25 0 0 1 5 2.5 A2.25 2.25 0 0 1 8.8 5.3 Z"/></svg></div>
-          <div class="tile c-2"><span class="num">7</span><svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .5 L9.1 5 L5 9.5 L.9 5 Z"/></svg></div>
-          <div class="tile c-3"><span class="num">7</span><svg class="sym" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 .4 L6.35 3.55 L9.7 3.8 L7.15 6.05 L7.95 9.4 L5 7.6 L2.05 9.4 L2.85 6.05 L.3 3.8 L3.65 3.55 Z"/></svg></div>
+          <div class="tile c-1"><span class="num">7</span></div>
+          <div class="tile c-2"><span class="num">7</span></div>
+          <div class="tile c-3"><span class="num">7</span></div>
         </div>
         <p id="heroSub">방을 만들어 친구를 초대하거나, 코드로 친구 방에 들어가세요. 빈 자리는 컴퓨터로 채울 수 있습니다.</p>
       </div>
@@ -405,9 +404,6 @@ for (let c = 0; c < 4; c++) for (let n = 1; n <= 13; n++) for (let k = 0; k < 2;
 T.push({ id: T.length, c: -1, n: 0, j: true });
 T.push({ id: T.length, c: -1, n: 0, j: true });
 const COLOR_NAME = ['검정', '빨강', '하늘', '노랑'];
-// Each colour also has its own shape (circle, heart, diamond, star) so colours can be told apart without relying on hue.
-const SYM_PATHS = [`<circle cx="5" cy="5" r="3.9"/>`, `<path d="M5 9.2 L1.2 5.3 A2.25 2.25 0 0 1 5 2.5 A2.25 2.25 0 0 1 8.8 5.3 Z"/>`, `<path d="M5 .5 L9.1 5 L5 9.5 L.9 5 Z"/>`, `<path d="M5 .4 L6.35 3.55 L9.7 3.8 L7.15 6.05 L7.95 9.4 L5 7.6 L2.05 9.4 L2.85 6.05 L.3 3.8 L3.65 3.55 Z"/>`];
-const symSVG = c => `<svg class="sym" viewBox="0 0 10 10" aria-hidden="true">${SYM_PATHS[c]}</svg>`;
 // Joker faces: ten original cats and dogs, drawn on a 40x40 grid.
 const INK = '#1c1c1f';
 function catFace(o) {
@@ -1242,9 +1238,9 @@ function tileHTML(id, cls = '', jv) {
   if (sel.has(id)) c.push('sel');
   if (fresh.has(id)) c.push('fresh');
   if (t.j) { const jk = jokerOf(id); return `<div class="tile joker ${c.join(' ')}" data-id="${id}" title="조커 · ${jk.name}" aria-label="조커 ${jk.name}${jv ? ' (' + jv + ')' : ''}"><span class="jmark">J</span>${jk.svg}${jv ? `<span class="jv">${jv}</span>` : ''}</div>`; }
-  return `<div class="tile c-${t.c} ${c.join(' ')}" data-id="${id}" aria-label="${COLOR_NAME[t.c]} ${t.n}"><span class="num">${t.n}</span>${symSVG(t.c)}</div>`;
+  return `<div class="tile c-${t.c} ${c.join(' ')}" data-id="${id}" aria-label="${COLOR_NAME[t.c]} ${t.n}"><span class="num">${t.n}</span></div>`;
 }
-const letterTile = (ch, i) => `<div class="tile c-${i % 4}"><span class="num">${esc(ch)}</span>${symSVG(i % 4)}</div>`;
+const letterTile = (ch, i) => `<div class="tile c-${i % 4}"><span class="num">${esc(ch)}</span></div>`;
 
 function setView(v) {
   view = v;
