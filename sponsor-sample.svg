@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect x="2" y="2" width="76" height="76" rx="14" fill="#2a6f97"/>
+  <rect x="7" y="7" width="66" height="66" rx="10" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="40" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#ffffff">YOUR</text>
+  <text x="40" y="54" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#ffd166">LOGO</text>
+</svg>

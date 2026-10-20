@@ -87,6 +87,10 @@ button{font:inherit;color:inherit}
 .tile .dot{width:calc(var(--tw)*.17);height:calc(var(--tw)*.17);border-radius:50%;border:1.5px solid currentColor;opacity:.55}
 .c-0{--tc:var(--t-k)} .c-1{--tc:var(--t-r)} .c-2{--tc:var(--t-b)} .c-3{--tc:var(--t-o)}
 .tile.joker svg{width:86%;height:auto;margin-top:8%}
+.tile.joker .sponsor-img{width:78%;height:auto;aspect-ratio:1;object-fit:contain;margin-top:10%;border-radius:4px;pointer-events:none}
+.sponsor-line{display:flex;align-items:center;gap:10px;margin:12px 0 0;padding:8px 10px;border-radius:9px;background:rgba(0,0,0,.2);font-size:12.5px;color:var(--muted)}
+.sponsor-line img{width:32px;height:32px;object-fit:contain;border-radius:4px;background:var(--ivory)}
+.sponsor-line b{color:var(--ink)}
 .tile .jmark{position:absolute;left:3px;top:2px;font-size:calc(var(--tw)*.22);color:var(--t-r);font-weight:900;line-height:1}
 .tile .jv{position:absolute;right:3px;bottom:3px;font-size:calc(var(--tw)*.24);color:#7b715c;font-weight:700}
 .tile.sel{transform:translateY(-6px);box-shadow:inset 0 1px 0 #fff, inset 0 -3px 0 var(--ivory-edge), 0 0 0 2.5px var(--accent), 0 6px 10px rgba(0,0,0,.4)}
@@ -377,6 +381,7 @@ button{font:inherit;color:inherit}
     <span class="lbl">게임 종료</span>
     <h2 id="endTitle"></h2>
     <p id="endSub"></p>
+    <div class="sponsor-line" id="endSponsor" hidden></div>
     <ul class="rank" id="endRank"></ul>
     <div class="row">
       <button class="btn" type="button" id="endClose">테이블 보기</button>
@@ -470,7 +475,13 @@ const JOKERS = [
   { name: '닥스훈트', svg: dogFace({ fur: '#9a5f32', muzzle: '#c8925f', ears: 'flop', earColor: '#6a3d1c', tongue: true }) },
   { name: '푸들', svg: dogFace({ fur: '#e3c39f', muzzle: '#f2dcc2', ears: 'curl', earColor: '#d6ad80' }) },
 ];
-const jokerOf = id => { const m = S && S.jk; const k = m && m[id] != null ? m[id] : id % JOKERS.length; return JOKERS[k] || JOKERS[0]; };
+// Sponsor joker: set window.SPONSOR = { name, image } in config.js to brand the second joker.
+const sponsor = () => { const sp = window.SPONSOR; return sp && sp.name && sp.image ? sp : null; };
+const jokerOf = id => {
+  const sp = sponsor();
+  if (sp && id === 105) return { name: `제공: ${sp.name}`, svg: `<img class="sponsor-img" src="${esc(sp.image)}" alt="${esc(sp.name)}" draggable="false">` };
+  const m = S && S.jk; const k = m && m[id] != null ? m[id] : id % JOKERS.length; return JOKERS[k] || JOKERS[0];
+};
 function pickJokers() { const a = shuffle(JOKERS.map((_, i) => i)); return { 104: a[0], 105: a[1] }; }
 
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1410,6 +1421,9 @@ function render() {
   if (S.over && overSeenV !== S.v) {
     const w = S.over.winner;
     $('endTitle').textContent = w === me ? '이겼습니다!' : `${S.seats[w].nick} 님 승리`;
+    const sp = sponsor(), es = $('endSponsor');
+    es.hidden = !sp;
+    if (sp) es.innerHTML = `<img src="${esc(sp.image)}" alt=""><span>이번 판 조커 제공 <b>${esc(sp.name)}</b>${sp.text ? ' · ' + esc(sp.text) : ''}</span>`;
     $('endSub').textContent = S.over.empty ? '손의 타일을 모두 내려놓았습니다. 남은 타일 점수(조커 30점)가 낮을수록 좋습니다.' : '남은 타일이 없어 게임이 끝났습니다. 남은 타일 점수가 가장 낮은 사람이 이깁니다.';
     const idx = S.seats.map((_, i) => i).sort((a, b) => S.over.pen[a] - S.over.pen[b]);
     $('endRank').innerHTML = idx.map(i => `<li class="${i === w ? 'win' : ''}"><span>${esc(S.seats[i].nick)} · ${S.hands[i].length}장</span><span>${S.over.pen[i] ? '−' + S.over.pen[i] : '0'}점</span></li>`).join('');
