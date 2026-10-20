@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect x="2" y="2" width="76" height="76" rx="14" fill="#f3e3d0"/>
+  <rect x="2" y="2" width="76" height="76" rx="14" fill="none" stroke="#8a5a3c" stroke-width="2.5"/>
+  <text x="40" y="38" text-anchor="middle" font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif" font-weight="800" font-size="19" fill="#6b4226">솜뭉치</text>
+  <text x="40" y="58" text-anchor="middle" font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif" font-weight="700" font-size="14" fill="#a0714f" letter-spacing="2">CAFE</text>
+</svg>
