@@ -38,3 +38,7 @@ npm test
 - `config.js` — Firebase 설정
 - `firestore.rules` — Firestore 보안 규칙
 - `tests/` — 자동 테스트
+
+## 저작권
+
+Copyright (c) 2026 hkyoon. All rights reserved. 무단 복제·수정·배포·호스팅을 금지합니다. 자세한 내용은 [LICENSE](LICENSE)를 보세요.
