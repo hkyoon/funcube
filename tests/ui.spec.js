@@ -150,6 +150,22 @@ test('컴퓨터 차례가 지나면 다시 내 차례가 된다', async ({ page 
   expect(await page.evaluate(() => window.__fc.S.turn)).toBe(0);
 });
 
+test('정렬 버튼 하나로 777·123이 번갈아 바뀌고, 다시 열어도 기억된다', async ({ page }) => {
+  await openGame(page);
+  await loadState(page, (st, id) => { st.hands[0] = [id(1, 2), id(0, 1), id(0, 2), id(1, 1)]; });
+  const order = () => page.$$eval('#rack .tile', els => els.map(e => +e.dataset.id));
+  const sort = page.locator('#btnSort');
+  // Default is by number, so the button offers the other mode.
+  await expect(sort).toHaveText('123');
+  expect(await order()).toEqual([id(0, 1), id(1, 1), id(0, 2), id(1, 2)]);
+  await sort.click();
+  await expect(sort).toHaveText('777');
+  await expect(sort).toHaveAttribute('title', '같은 숫자끼리 정렬');
+  expect(await order()).toEqual([id(0, 1), id(0, 2), id(1, 1), id(1, 2)]);
+  await page.reload();
+  await expect(page.locator('#btnSort')).toHaveText('777');
+});
+
 test('규칙 창이 열리고 확인으로 닫힌다', async ({ page }) => {
   await openGame(page);
   await page.click('#btnRules');

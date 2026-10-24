@@ -199,6 +199,9 @@ button{font:inherit;color:inherit}
   .btn.primary{padding:10px 22px}
   .pchip{font-size:14px;padding:6px 12px 6px 10px}
   .msg{font-size:14px}
+  /* the button row under the rack grows with the tiles (top info bar stays as is) */
+  .rackbar{gap:8px;margin-bottom:10px}
+  .rackbar .btn, .rackbar .newzone{font-size:clamp(14px, calc(var(--tw)*.2), 17px);padding:0 clamp(12px, calc(var(--tw)*.24), 20px);min-height:clamp(36px, calc(var(--tw)*.56), 48px)}
   .table{gap:18px 18px}
   .meld{padding:8px;gap:3px}
 }
@@ -355,8 +358,7 @@ button{font:inherit;color:inherit}
     <div class="rackbar">
       <button class="newzone" type="button" id="dockNew" data-drop="new" title="타일을 끌어 놓거나, 눌러 고른 뒤 여기를 누르면 새 조합이 됩니다"><span class="lg">＋ 새 조합</span><span class="sm">＋ 조합</span></button>
       <button class="btn" type="button" id="btnClearSel" title="선택 해제">해제</button>
-      <button class="btn" id="btnSortNum" type="button" title="같은 숫자끼리 정렬" aria-label="같은 숫자끼리 정렬">777</button>
-      <button class="btn" id="btnSortCol" type="button" title="색깔별 연속 숫자 정렬" aria-label="색깔별 연속 숫자 정렬">123</button>
+      <button class="btn" id="btnSort" type="button">123</button>
       <button class="btn" id="btnReset" type="button" title="되돌리기" aria-label="되돌리기"><span class="lg">되돌리기</span><span class="sm">↺</span></button>
       <button class="btn primary" id="btnEnd" type="button">뽑기</button>
     </div>
@@ -1400,7 +1402,8 @@ function render() {
   const played = ht ? playedIds() : [];
   const tableChanged = ht && tableKey(S.table) !== tableKey(S.snap.table);
   $('btnReset').disabled = !ht || (!played.length && !tableChanged);
-  $('btnSortNum').disabled = $('btnSortCol').disabled = me < 0;
+  $('btnSort').disabled = me < 0;
+  sortLabel();
   const end = $('btnEnd');
   if (S.over) {
     const canRestart = !isRoom() || isHost();
@@ -1686,8 +1689,12 @@ $('btnEnd').onclick = () => (S && S.over ? rematch() : endTurn());
 $('dockNew').onclick = tapNew;
 $('btnClearSel').onclick = () => { sel.clear(); target = null; render(); };
 $('btnReset').onclick = resetTurn;
-$('btnSortNum').onclick = () => { sortMode = 'num'; ls.set('rummikub-sort', sortMode); render(); };
-$('btnSortCol').onclick = () => { sortMode = 'col'; ls.set('rummikub-sort', sortMode); render(); };
+// One toggle: the label shows what pressing it will do.
+function sortLabel() {
+  const next = sortMode === 'num' ? ['123', '색깔별 연속 숫자로 정렬'] : ['777', '같은 숫자끼리 정렬'];
+  const b = $('btnSort'); b.textContent = next[0]; b.title = next[1]; b.setAttribute('aria-label', next[1]);
+}
+$('btnSort').onclick = () => { sortMode = sortMode === 'num' ? 'col' : 'num'; ls.set('rummikub-sort', sortMode); render(); };
 $('btnRules').onclick = () => { $('ovRules').hidden = false; };
 $('rulesClose').onclick = () => { $('ovRules').hidden = true; };
 $('btnHome').onclick = () => { if (isRoom()) leaveRoom(); else { saveLocal(); setView('home'); } };
@@ -1769,6 +1776,7 @@ async function initMultiplayer() {
 function start(data) {
   $('nick').value = ls.get('rummikub-nick') || '';
   sortMode = ls.get('rummikub-sort') === 'col' ? 'col' : 'num';
+  sortLabel();
   { const d = ls.get('rummikub-diff'); if (DIFF_KO[d]) diffPick = d; }
   if (data && data.state && data.local) { S = data.state; mode = { kind: 'local' }; setView('game'); render(); scheduleAI(); }
   else setView('home');
