@@ -23,7 +23,7 @@
   --f-num:"Archivo", "Arial Narrow", Arial, sans-serif;
   --f-brand:"Old Standard TT", "Times New Roman", Georgia, serif;
   --f-ui:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --tw:clamp(32px, min(5.8vw, 7vh), 64px);
+  --tw:clamp(32px, min(5.8vw, 7vh), 84px);
   --gut-l:max(16px, env(safe-area-inset-left, 0px));
   --gut-r:max(16px, env(safe-area-inset-right, 0px));
 }
@@ -32,7 +32,7 @@ html,body{height:100%;margin:0}
 *,*::before,*::after{box-sizing:border-box}
 body{background:var(--felt-deep);color:var(--ink);font-family:var(--f-ui);font-size:14px;overflow:hidden}
 button{font:inherit;color:inherit}
-.app{height:100%;display:flex;flex-direction:column;
+.app{height:100%;max-width:1760px;margin:0 auto;display:flex;flex-direction:column;-webkit-touch-callout:none;
   background:radial-gradient(120% 90% at 50% 30%, var(--felt) 0%, var(--felt-deep) 100%)}
 
 /* top bar */
@@ -64,7 +64,12 @@ button{font:inherit;color:inherit}
 .meld.invalid{border-color:var(--danger);background:rgba(255,122,107,.08)}
 .meld.invalid::after{content:"무효";position:absolute;top:-9px;right:8px;font-size:10px;font-weight:700;padding:0 5px;border-radius:4px;background:var(--danger);color:var(--felt-deep)}
 .meld.over,.newzone.over{border-color:var(--accent);background:rgba(242,184,75,.12)}
-.slot{width:calc(var(--tw)*.7);height:calc(var(--tw));border-radius:6px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-size:20px;cursor:pointer;flex:none;margin-left:4px}
+/* target meld: glow drawn with box-shadow so the meld never changes size */
+.meld.target{box-shadow:0 0 0 2px var(--accent), 0 0 16px rgba(242,184,75,.35)}
+.table.armed .meld{cursor:pointer}
+@media (hover:hover){.table.armed .meld:not(.target):hover{border-color:rgba(242,184,75,.55)}}
+.marquee{position:fixed;z-index:40;pointer-events:none;border:1.5px dashed var(--accent);background:rgba(242,184,75,.10);border-radius:4px}
+.tile.press{transform:translateY(-6px) scale(1.08)}
 .newzone{display:flex;align-items:center;justify-content:center;min-width:calc(var(--tw)*3.6);height:calc(var(--tw) + 15px);padding:0 14px;border-radius:10px;border:1.5px dashed rgba(236,231,220,.28);color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:border-color .15s, background .15s}
 .newzone.hl{border-color:var(--accent);color:var(--accent);background:rgba(242,184,75,.08)}
 .newzone:disabled{opacity:.45;cursor:default}
@@ -77,7 +82,7 @@ button{font:inherit;color:inherit}
   box-shadow:inset 0 1px 0 #fff, inset 0 -3px 0 var(--ivory-edge), 0 2px 3px rgba(0,0,0,.35);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   color:var(--tc);font-family:var(--f-num);font-weight:800;font-stretch:88%;font-size:calc(var(--tw)*.56);line-height:1;
-  user-select:none;-webkit-user-select:none;touch-action:none;cursor:grab;transition:transform .12s, box-shadow .12s}
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;cursor:grab;transition:transform .12s, box-shadow .12s}
 .tile .num{font-variant-numeric:tabular-nums;margin-top:-4%}
 .c-0{--tc:var(--t-k)} .c-1{--tc:var(--t-r)} .c-2{--tc:var(--t-b)} .c-3{--tc:var(--t-o)}
 .tile.joker svg{width:80%;height:auto;margin-top:4%}
@@ -527,6 +532,7 @@ let mode = { kind: 'local' };       // or {kind:'room', code, ref, room, seatsLi
 let view = 'home';
 let ME = { uid: null, canWrite: null, db: null, user: null };
 let sel = new Set(), fresh = new Set();
+let target = null; // destination meld id, or 'new' (next tapped tile starts a new meld)
 let drawnId = null, sortMode = 'num', overSeenV = -1;
 let flashMsg = null, flashTimer = null, aiPendingV = -1;
 let pickN = 2, homeBots = 0;
@@ -632,7 +638,7 @@ function moveTo(ids, target) {
     if (ids.length < want) flash('테이블에 원래 있던 타일은 내 패로 가져올 수 없습니다.');
   }
   if (target.type === 'meld') { const tm = S.table.find(m => m.id === target.mid); if (tm) ids = ids.filter(id => !tm.tiles.includes(id)); }
-  if (!ids.length) { sel.clear(); render(); return; }
+  if (!ids.length) { sel.clear(); render(); return null; }
   // Remember each source meld's laid-out order so a gap can be split later.
   const before = new Map();
   for (const id of ids) {
@@ -645,11 +651,11 @@ function moveTo(ids, target) {
     if (hi >= 0) hand.splice(hi, 1);
     else { const m = meldOf(id); if (m) m.tiles.splice(m.tiles.indexOf(id), 1); }
   }
+  let dest = null;
   if (target.type === 'rack') hand.push(...ids);
-  else if (target.type === 'meld') {
-    const m = S.table.find(m => m.id === target.mid);
-    if (m) m.tiles.push(...ids); else S.table.push({ id: S.mid++, tiles: ids });
-  } else S.table.push({ id: S.mid++, tiles: ids });
+  else if (target.type === 'meld' && S.table.find(m => m.id === target.mid)) {
+    S.table.find(m => m.id === target.mid).tiles.push(...ids); dest = target.mid;
+  } else { dest = S.mid++; S.table.push({ id: dest, tiles: ids }); }
   // Auto-split: a meld that broke because tiles left its middle becomes separate melds at each gap.
   let splits = 0;
   for (const [mid, order] of before) {
@@ -674,6 +680,7 @@ function moveTo(ids, target) {
   drawnId = null;
   sel.clear(); fresh.clear();
   commit();
+  return dest;
 }
 
 function flash(text, kind = 'err', ms = 3800) {
@@ -686,7 +693,7 @@ function resetTurn() {
   if (!humanTurn()) return;
   S.table = S.snap.table.map(m => ({ id: m.id, tiles: m.tiles.slice() }));
   S.hands[mySeat()] = S.snap.hand.slice();
-  sel.clear(); commit();
+  sel.clear(); target = null; commit();
 }
 
 function drawFor(p) {
@@ -1342,7 +1349,8 @@ function renderMsg() {
   const me = mySeat();
   if (flashMsg) { text = flashMsg.text; kind = flashMsg.kind; }
   else if (!S.over && S.turn !== me) text = `${S.log} ${S.seats[S.turn].nick} 님 차례…`;
-  else if (humanTurn() && sel.size) text = `${sel.size}장 선택됨. 조합 끝의 ＋, '새 조합', 또는 랙을 눌러 옮기세요.`;
+  else if (humanTurn() && target != null) text = target === 'new' ? '누르는 타일로 새 조합을 만듭니다. 다시 누르거나 Esc로 해제.' : '목표 조합에 붙이는 중입니다. 타일을 누르면 바로 붙습니다. 목표를 다시 누르거나 Esc로 해제.';
+  else if (humanTurn() && sel.size) text = `${sel.size}장 선택됨. 보낼 조합이나 '새 조합'을 누르세요.`;
   else if (humanTurn()) text = `${S.log} 내 차례입니다.`;
   el.textContent = text;
   el.className = 'msg' + (kind ? ' ' + kind : '');
@@ -1367,18 +1375,19 @@ function render() {
   $('pool').innerHTML = `남은 타일 <b>${S.pool.length}</b>`;
 
   const ht = humanTurn();
+  if (!ht || (typeof target === 'number' && !S.table.some(m => m.id === target))) target = null;
   const mine = ht ? new Set(playedIds()) : new Set();
   let html = '';
   for (const m of S.table) {
     const a = analyze(m.tiles);
     const order = a.valid ? a.order : m.tiles;
-    html += `<div class="meld ${a.valid ? '' : 'invalid'}" data-drop="meld" data-mid="${m.id}">` +
+    html += `<div class="meld ${a.valid ? '' : 'invalid'} ${target === m.id ? 'target' : ''}" data-drop="meld" data-mid="${m.id}">` +
       order.map(id => tileHTML(id, mine.has(id) ? 'mine' : '', a.jv[id])).join('') +
-      (ht && sel.size ? `<button class="slot" type="button" data-drop="meld" data-mid="${m.id}" aria-label="이 조합에 추가">＋</button>` : '') +
       `</div>`;
   }
-  if (!S.table.length) html += `<p class="empty-hint">테이블이 비어 있습니다. 내 패에서 타일을 눌러 고른 뒤 아래 '새 조합'을 누르세요. 첫 등록은 내 타일만으로 30점 이상이어야 합니다.</p>`;
+  if (!S.table.length) html += `<p class="empty-hint">테이블이 비어 있습니다. 내 패에서 타일을 눌러 고른 뒤 아래 '새 조합'을 누르세요. 여러 장은 꾹 누른 채 쓸거나, 마우스로 네모를 그려 고를 수 있어요. 첫 등록은 내 타일만으로 30점 이상이어야 합니다.</p>`;
   $('table').innerHTML = html;
+  $('table').classList.toggle('armed', ht && (sel.size > 0 || target != null));
 
   if (me < 0) {
     $('rack').innerHTML = '<p class="sub" style="color:var(--ivory);margin:auto">관전 중입니다. 이번 판이 끝나고 방장이 로비로 돌아가면 참가할 수 있습니다.</p>';
@@ -1426,74 +1435,239 @@ function render() {
 function renderDock(ht) {
   const nz = $('dockNew');
   nz.disabled = !ht;
-  nz.classList.toggle('hl', ht && sel.size > 0);
+  nz.classList.toggle('hl', ht && (sel.size > 0 || target === 'new'));
   const c = ht && sel.size ? ` (${sel.size})` : '';
   nz.innerHTML = `<span class="lg">＋ 새 조합${c}</span><span class="sm">＋ 조합${c}</span>`;
-  $('btnClearSel').hidden = !ht || !sel.size;
+  $('btnClearSel').hidden = !ht || (!sel.size && target == null);
 }
 
-// ---------- input: drag + tap ----------
-let drag = null, ghost = null, overEl = null;
+// ---------- input ----------
+// One model for mouse and touch: pick tiles, then tap where they go. The meld they went to stays the
+// "target", so further taps send tiles straight there. Dragging is a secondary way to move tiles.
+//   mouse: click = pick / send, drag a tile = move, drag on empty space = box select, shift+click = range,
+//          double-click a meld = pick the whole meld.
+//   touch: tap = pick / send, swipe = scroll, long-press + slide = pick several, long-press a table tile
+//          and lift = pick the whole meld, long-press a picked tile + slide = move.
+const LONG_MS = 320, MOVE_MOUSE = 6, MOVE_TOUCH = 10;
+let press = null, ghost = null, overEl = null, marquee = null, scrollRAF = 0, anchor = null, lastTap = null;
+
+const zoneOf = id => myHand().includes(id) ? 'rack' : (meldOf(id) ? 'table' : null);
 function dropTarget(x, y) { const el = document.elementFromPoint(x, y); return el ? el.closest('[data-drop]') : null; }
 function targetOf(el) { const t = el.dataset.drop; if (t === 'meld') return { type: 'meld', mid: +el.dataset.mid }; return { type: t }; }
 function setOver(el) {
-  if (el && el.classList.contains('slot')) el = el.closest('.meld');
   if (overEl === el) return;
   if (overEl) overEl.classList.remove('over');
   overEl = el; if (el) el.classList.add('over');
 }
-document.addEventListener('pointerdown', e => {
-  if (e.button !== undefined && e.button !== 0) return;
-  const tEl = e.target.closest('.tile[data-id]');
-  if (!tEl || !humanTurn() || tEl.closest('.ghost')) return;
-  const id = +tEl.dataset.id;
-  if (!movable(id)) return;
-  e.preventDefault();
-  drag = { id, x: e.clientX, y: e.clientY, started: false, el: tEl };
-});
-document.addEventListener('pointermove', e => {
-  if (!drag) return;
-  if (!drag.started) {
-    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
-    drag.started = true;
-    drag.ids = sel.has(drag.id) ? [drag.id, ...[...sel].filter(i => i !== drag.id)] : [drag.id];
-    ghost = document.createElement('div'); ghost.className = 'ghost';
-    ghost.innerHTML = drag.ids.map(id => tileHTML(id).replace(' sel', '')).join('');
-    document.body.appendChild(ghost);
-    const r = drag.el.getBoundingClientRect();
-    drag.ox = drag.x - r.left; drag.oy = drag.y - r.top;
-    drag.ids.forEach(id => document.querySelectorAll(`.tile[data-id="${id}"]`).forEach(n => { if (!n.closest('.ghost')) n.classList.add('dragging'); }));
+function markSel() { document.querySelectorAll('#table .tile[data-id], #rack .tile[data-id]').forEach(n => n.classList.toggle('sel', sel.has(+n.dataset.id))); }
+
+// Send tiles somewhere; a meld (or new meld) becomes the target.
+function send(ids, dest) {
+  if (!ids.length) return;
+  const mid = moveTo(ids, dest);
+  if (mid != null) { target = mid; render(); }
+}
+function sendToTarget(ids) { send(ids, target === 'new' ? { type: 'new' } : { type: 'meld', mid: target }); }
+
+function tapTile(id, shift) {
+  const m = meldOf(id);
+  if (shift && anchor != null && zoneOf(anchor) === zoneOf(id) && target == null) return rangeSelect(anchor, id);
+  if (target != null) {
+    if (m && m.id === target) { target = null; sel.clear(); sel.add(id); anchor = id; return render(); } // tap inside the target: release it, pick this tile
+    if (sel.has(id)) { sel.delete(id); return render(); }
+    return sendToTarget([id]);
   }
-  ghost.style.transform = `translate(${e.clientX - drag.ox}px, ${e.clientY - drag.oy}px)`;
-  setOver(dropTarget(e.clientX, e.clientY));
-});
-function endDrag(e, cancel) {
-  if (!drag) return;
-  const d = drag; drag = null;
-  setOver(null);
-  if (ghost) { ghost.remove(); ghost = null; }
-  if (d.started) {
-    const t = cancel ? null : dropTarget(e.clientX, e.clientY);
-    if (t) moveTo(d.ids, targetOf(t)); else render();
-  } else if (!cancel) {
-    sel.has(d.id) ? sel.delete(d.id) : sel.add(d.id);
-    render();
+  if (sel.size && m && !sel.has(id)) return send([...sel], { type: 'meld', mid: m.id }); // picked tiles go to the tapped tile's meld
+  sel.has(id) ? sel.delete(id) : sel.add(id);
+  anchor = id;
+  render();
+}
+function tapMeld(mid) {
+  if (target === mid) { target = null; return render(); }
+  if (sel.size) return send([...sel], { type: 'meld', mid });
+  target = mid; render();
+}
+function tapNew() {
+  if (!humanTurn()) return;
+  if (sel.size) return send([...sel], { type: 'new' });
+  target = target === 'new' ? null : 'new'; render();
+}
+function tapBackground(zone) {
+  if (zone === 'rack' && sel.size) { moveTo([...sel], { type: 'rack' }); return; }
+  if (target != null) { target = null; return render(); }
+  if (sel.size) { sel.clear(); render(); }
+}
+function rangeSelect(a, b) {
+  const list = zoneOf(a) === 'rack' ? sortedHand() : (() => { const m = meldOf(a); const an = analyze(m.tiles); return an.valid ? an.order : m.tiles; })();
+  if (!list.includes(b)) { sel.add(b); anchor = b; return render(); }
+  const i = list.indexOf(a), j = list.indexOf(b);
+  list.slice(Math.min(i, j), Math.max(i, j) + 1).forEach(t => sel.add(t));
+  anchor = b; render();
+}
+function pickMeld(mid) {
+  const m = S.table.find(x => x.id === mid); if (!m) return;
+  target = null; sel = new Set(m.tiles); render();
+}
+// After a multi-pick gesture: if a target is set, the picked tiles go there right away.
+function finishPick() { if (target != null && sel.size) sendToTarget([...sel]); else render(); }
+
+function startDrag(ids, x, y, el) {
+  press.mode = 'drag'; press.lock = true; press.ids = ids;
+  ghost = document.createElement('div'); ghost.className = 'ghost';
+  ghost.innerHTML = ids.map(id => tileHTML(id).replace(' sel', '')).join('');
+  document.body.appendChild(ghost);
+  const r = el.getBoundingClientRect();
+  press.ox = Math.min(r.width / 2, x - r.left); press.oy = Math.min(r.height / 2, y - r.top);
+  ids.forEach(id => document.querySelectorAll(`.tile[data-id="${id}"]`).forEach(n => { if (!n.closest('.ghost')) n.classList.add('dragging'); }));
+  moveGhost(x, y);
+}
+function moveGhost(x, y) {
+  ghost.style.transform = `translate(${x - press.ox}px, ${y - press.oy}px)`;
+  setOver(dropTarget(x, y));
+  // Scroll the table while dragging near its top or bottom edge, so off-screen melds can be reached.
+  const tb = $('table').getBoundingClientRect(), edge = 48;
+  press.scrollV = y < tb.top + edge ? -1 : (y > tb.bottom - edge && y < tb.bottom + 8 ? 1 : 0);
+  if (press.scrollV && !scrollRAF) {
+    const step = () => {
+      if (!press || press.mode !== 'drag' || !press.scrollV) { scrollRAF = 0; return; }
+      $('table').scrollTop += press.scrollV * 12;
+      setOver(dropTarget(press.lx, press.ly));
+      scrollRAF = requestAnimationFrame(step);
+    };
+    scrollRAF = requestAnimationFrame(step);
   }
 }
-document.addEventListener('pointerup', e => endDrag(e, false));
-document.addEventListener('pointercancel', e => endDrag(e, true));
+function paintAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const t = el && el.closest('#rack .tile[data-id], #table .tile[data-id]');
+  if (!t) return;
+  const id = +t.dataset.id;
+  if (!sel.has(id) && movable(id)) { sel.add(id); press.painted++; t.classList.add('sel'); }
+}
+function updateMarquee(x, y) {
+  const x1 = Math.min(press.x, x), y1 = Math.min(press.y, y), x2 = Math.max(press.x, x), y2 = Math.max(press.y, y);
+  Object.assign(marquee.style, { left: x1 + 'px', top: y1 + 'px', width: (x2 - x1) + 'px', height: (y2 - y1) + 'px' });
+  sel = new Set(press.base);
+  document.querySelectorAll('#rack .tile[data-id], #table .tile[data-id]').forEach(n => {
+    const r = n.getBoundingClientRect();
+    const hit = r.right > x1 && r.left < x2 && r.bottom > y1 && r.top < y2;
+    const id = +n.dataset.id;
+    if (hit && movable(id)) sel.add(id);
+    n.classList.toggle('sel', sel.has(id));
+  });
+}
+function cleanup() {
+  if (press && press.timer) clearTimeout(press.timer);
+  if (ghost) { ghost.remove(); ghost = null; }
+  if (marquee) { marquee.remove(); marquee = null; }
+  document.querySelectorAll('.tile.press').forEach(n => n.classList.remove('press'));
+  setOver(null);
+  press = null;
+}
+
+document.addEventListener('pointerdown', e => {
+  if (e.button !== undefined && e.button !== 0) return;
+  if (press || !humanTurn() || e.target.closest('.ghost, button')) return;
+  const touch = e.pointerType !== 'mouse';
+  const tEl = e.target.closest('#rack .tile[data-id], #table .tile[data-id]');
+  const mEl = e.target.closest('#table .meld');
+  const zone = e.target.closest('#rack') ? 'rack' : (e.target.closest('#table') ? 'table' : null);
+  if (!zone) return;
+  const base = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, touch, moved: false, painted: 0 };
+  if (tEl && movable(+tEl.dataset.id)) {
+    press = { ...base, kind: 'tile', id: +tEl.dataset.id, el: tEl, mid: mEl ? +mEl.dataset.mid : null };
+    if (!touch) e.preventDefault();
+    else press.timer = setTimeout(() => {
+      if (!press || press.moved) return;
+      navigator.vibrate?.(12);
+      if (sel.has(press.id)) startDrag([press.id, ...[...sel].filter(i => i !== press.id)], press.lx, press.ly, press.el);
+      else { press.mode = 'paint'; press.lock = true; sel.add(press.id); press.el.classList.add('sel', 'press'); }
+    }, LONG_MS);
+  } else if (mEl) {
+    press = { ...base, kind: 'meld', mid: +mEl.dataset.mid };
+    if (touch) press.timer = setTimeout(() => { if (press && !press.moved) { navigator.vibrate?.(12); press.mode = 'meldpick'; pickMeld(press.mid); } }, LONG_MS);
+  } else {
+    press = { ...base, kind: 'bg', zone };
+    if (!touch) e.preventDefault();
+  }
+});
+
+document.addEventListener('pointermove', e => {
+  if (!press) return;
+  press.lx = e.clientX; press.ly = e.clientY;
+  const dist = Math.hypot(e.clientX - press.x, e.clientY - press.y);
+  if (press.mode === 'drag') return moveGhost(e.clientX, e.clientY);
+  if (press.mode === 'paint') return paintAt(e.clientX, e.clientY);
+  if (press.mode === 'marquee') return updateMarquee(e.clientX, e.clientY);
+  if (press.touch) {
+    // A finger that moves before the long-press fires is scrolling: let the browser have it.
+    if (!press.mode && dist > MOVE_TOUCH) { press.moved = true; clearTimeout(press.timer); }
+    return;
+  }
+  if (dist <= MOVE_MOUSE) return;
+  press.moved = true;
+  if (press.kind === 'tile') startDrag(sel.has(press.id) ? [press.id, ...[...sel].filter(i => i !== press.id)] : [press.id], e.clientX, e.clientY, press.el);
+  else if (press.kind === 'bg') {
+    press.mode = 'marquee'; press.base = target == null ? [...sel] : [];
+    marquee = document.createElement('div'); marquee.className = 'marquee'; document.body.appendChild(marquee);
+    updateMarquee(e.clientX, e.clientY);
+  }
+});
+
+document.addEventListener('pointerup', e => {
+  if (!press) return;
+  const p = press;
+  if (p.timer) clearTimeout(p.timer);
+  if (p.mode === 'drag') {
+    const t = dropTarget(e.clientX, e.clientY);
+    cleanup();
+    if (t && !t.disabled) moveTo(p.ids, targetOf(t)); else render();
+    return;
+  }
+  cleanup();
+  if (p.mode === 'paint') {
+    // Long-press on a table tile and lift without sliding: pick the whole meld.
+    if (p.painted === 0 && p.mid != null) { sel.delete(p.id); return pickMeld(p.mid); }
+    return finishPick();
+  }
+  if (p.mode === 'marquee') return finishPick();
+  if (p.mode === 'meldpick' || p.moved) return;
+  // Mouse double-click on a meld (tile or frame) picks the whole meld. Detected here because the first
+  // click re-renders the table, which stops the browser's own dblclick from firing.
+  const mid = p.kind === 'meld' ? p.mid : (p.kind === 'tile' ? p.mid : null);
+  if (!p.touch && mid != null) {
+    const now = Date.now();
+    if (lastTap && lastTap.mid === mid && now - lastTap.t < 380) { lastTap = null; return pickMeld(mid); }
+    lastTap = { mid, t: now };
+  }
+  if (p.kind === 'tile') tapTile(p.id, e.shiftKey);
+  else if (p.kind === 'meld') tapMeld(p.mid);
+  else tapBackground(p.zone);
+});
+document.addEventListener('pointercancel', () => { if (press) { const painted = press.mode === 'paint' || press.mode === 'marquee'; cleanup(); painted ? finishPick() : render(); } });
+// While a long-press gesture owns the finger, stop the page from scrolling under it.
+document.addEventListener('touchmove', e => { if (press && press.lock) e.preventDefault(); }, { passive: false });
+document.addEventListener('contextmenu', e => { if (e.target.closest('.tile, .meld')) e.preventDefault(); });
 document.addEventListener('click', e => {
   const j = e.target.closest('[data-join]');
-  if (j) { joinRoom(j.dataset.join); return; }
-  if (!humanTurn() || !sel.size) return;
-  if (e.target.closest('.tile')) return;
-  const t = e.target.closest('[data-drop]');
-  if (t && !t.disabled) moveTo([...sel], targetOf(t));
+  if (j) joinRoom(j.dataset.join);
 });
 document.addEventListener('keydown', e => {
+  const typing = e.target.closest && e.target.closest('input, textarea');
   if (e.key === 'Escape') {
     if (!$('ovRules').hidden) $('ovRules').hidden = true;
+    else if (target != null) { target = null; render(); }
     else if (sel.size) { sel.clear(); render(); }
+    return;
+  }
+  if (typing || view !== 'game') return;
+  if (e.key === ' ' || e.code === 'Space') {
+    if (!$('ovEnd').hidden || !$('ovRules').hidden) return;
+    e.preventDefault();
+    const b = $('btnEnd'); if (!b.disabled) b.click();
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (!$('btnReset').disabled) resetTurn();
   }
 });
 
@@ -1509,7 +1683,8 @@ async function copyText(text, el) {
 
 // ---------- buttons ----------
 $('btnEnd').onclick = () => (S && S.over ? rematch() : endTurn());
-$('btnClearSel').onclick = () => { sel.clear(); render(); };
+$('dockNew').onclick = tapNew;
+$('btnClearSel').onclick = () => { sel.clear(); target = null; render(); };
 $('btnReset').onclick = resetTurn;
 $('btnSortNum').onclick = () => { sortMode = 'num'; ls.set('rummikub-sort', sortMode); render(); };
 $('btnSortCol').onclick = () => { sortMode = 'col'; ls.set('rummikub-sort', sortMode); render(); };

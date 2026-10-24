@@ -15,9 +15,4 @@ window.FIREBASE_CONFIG = {
 
 // 스폰서 조커: 조커 두 장 중 한 장에 광고주 로고를 넣고, 게임 결과 창에 "조커 제공" 문구를 띄웁니다.
 // image에는 정사각형 로고 파일(저장소에 올린 파일 이름이나 https 주소)을 넣으세요. 끄려면 null로 바꾸세요.
-// 로고: 비숑 얼굴(sponsor.svg). 실제 로고 파일을 받으면 이 파일만 바꾸세요.
-window.SPONSOR = {
-  name: "솜뭉치카페",
-  image: "sponsor.svg",
-  text: "아아 샷추가 무료!"
-};
+window.SPONSOR = null; // 꺼 둠. 다시 켜려면: { name: "솜뭉치카페", image: "sponsor.svg", text: "아아 샷추가 무료!" }
