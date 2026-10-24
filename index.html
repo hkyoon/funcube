@@ -6,6 +6,11 @@
 <script src="config.js"></script>
 </head>
 <body>
+<!--
+  © 2026 hkyoon. All rights reserved.
+  이 게임의 코드, 그림(조커 캐릭터 포함), 디자인, 문구를 허락 없이 복제·수정·배포·재사용할 수 없습니다.
+  No copying, modification, redistribution or reuse of this code, artwork, design or text without permission.
+-->
 <title>FunCube</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -181,6 +186,8 @@ button{font:inherit;color:inherit}
 .tag.you{color:var(--ok);border-color:rgba(127,211,164,.45)}
 .linkbox{font-size:12.5px;word-break:break-all;color:var(--ink);background:rgba(0,0,0,.28);border-radius:8px;padding:9px 11px;user-select:all;-webkit-user-select:all}
 .roomchip{font-family:var(--f-num);font-weight:800;letter-spacing:.14em;font-size:13px;padding:5px 9px;border-radius:7px;border:1px solid var(--line);background:rgba(0,0,0,.2)}
+.copy{margin:4px 0 0;text-align:center;font-size:11.5px;color:var(--muted);opacity:.75;letter-spacing:.01em}
+.card .copy{margin-top:14px;text-align:left;font-size:11.5px}
 .host-btn{margin-left:8px;padding:4px 9px;font-size:12px}
 
 @media (max-width:640px){
@@ -306,6 +313,7 @@ button{font:inherit;color:inherit}
           <button class="btn" type="button" id="btnResume" hidden>이어서 하기</button>
         </div>
       </div>
+      <p class="copy">© 2026 hkyoon. All rights reserved.</p>
     </div>
   </section>
 
@@ -394,12 +402,14 @@ button{font:inherit;color:inherit}
       <li><b>못 내면</b> 타일 한 장을 뽑고 턴을 넘깁니다.</li>
       <li><b>조작</b> 타일을 끌어다 놓거나, 눌러서 여러 장 선택한 뒤 조합 끝의 ＋ 또는 '새 조합'을 누르세요. 이번 턴에 낸 타일은 랙으로 되돌릴 수 있습니다.</li>
     </ul>
+    <p class="copy">© 2026 hkyoon. All rights reserved.</p>
     <div class="row"><button class="btn primary" type="button" id="rulesClose">확인</button></div>
   </div>
 </div>
 
 <script>
 (() => {
+// © 2026 hkyoon. All rights reserved. Unauthorized copying or reuse is prohibited.
 'use strict';
 const TEST = typeof window !== 'undefined' && !!window.__FUNCUBE_TEST__;
 const ARTIFACT_URL = 'https://claude.ai/artifact/TqSzkjLJn9xN9Cp7Ak8kkP';
