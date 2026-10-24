@@ -1,6 +1,7 @@
 # 할 일
 
 자세한 내용과 결정 기록은 [FunCube 개발 명세서](https://docs.google.com/document/d/1LZ7xUYSi54lj_7KYX6s3evXZw-8w3mi4m03zFRYZeQ4/edit)(구글 닥스)에 있습니다.
+운영자가 직접 할 일(테스트, 이름·도메인, 광고 준비, 홍보)은 [FunCube 운영자 할 일](https://docs.google.com/document/d/1NYq9ztpUvKhKdA7W7uf-VCUnzrYdV54PamQ6jM0I30E/edit)에 모았습니다.
 
 ## 작업 방식
 
